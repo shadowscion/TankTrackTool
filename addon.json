@@ -1,0 +1,11 @@
+{
+	"title"		:	"Tank Track Tool",
+	"type"		:	"tool",
+	"tags"		:	[ "build", "realism" ],
+	"ignore"	:
+	[
+		"*.psd",
+		"*.vcproj",
+		"*.svn*"
+	]
+}
