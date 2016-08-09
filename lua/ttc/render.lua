@@ -1,6 +1,6 @@
 --[[
-	Tank Track Controller Addon
-	by shadowscion
+    Tank Track Controller Addon
+    by shadowscion
 ]]--
 
 -- Initialize and localize main table
@@ -12,10 +12,10 @@ local RenderOverride = TTC.RenderOverride
 
 -- Create clientside model
 if IsValid(TTC.ClientProp) then
-	TTC.ClientProp:Remove()
-	TTC.ClientProp = nil
+    TTC.ClientProp:Remove()
+    TTC.ClientProp = nil
 
-	MsgC(Color(255, 125, 125), "Recreating TTC ClientProp\n")
+    MsgC(Color(255, 125, 125), "TTC: Recreating TTC ClientProp\n")
 end
 
 TTC.ClientProp = ClientsideModel("models/hunter/plates/plate025x025.mdl")
@@ -29,6 +29,22 @@ local ClientProp = TTC.ClientProp
 -- Fallbacks
 TTC.Fallback_Model = "models/hunter/plates/plate025x025.mdl"
 TTC.Fallback_Material = Material("models/debug/debugwhite")
+
+
+-- Allowed models
+TTC.Models = {
+    ["teeth"] = "models/tanktrack_controller/track_segment_teeth.mdl",
+    ["no_teeth"] = "models/tanktrack_controller/track_segment.mdl",
+}
+
+for k, v in pairs(TTC.Models) do
+    if file.Exists(v, "GAME") then
+        continue
+    end
+
+    MsgC(Color(255, 125, 125), "TTC: Missing model, make sure the addon is installed locally\n")
+    TTC.Models[k] = nil
+end
 
 
 -- Allowed materials
@@ -51,6 +67,8 @@ for k, v in pairs(TTC.Textures) do
     TTC.Textures[k] = nil
 end
 
+
+-- Material shader
 TTC.Shader = {
     ["$basetexture"] = "models/debug/debugwhite",
     ["$alphatest"]   = "1",
@@ -74,22 +92,24 @@ TTC.Shader = {
             ["rotateVar"]    = "$angle",
             ["centerVar"]    = "$center",
             ["resultVar"]    = "$basetexturetransform",
-        }
+        },
     }
 }
 
+
+-- Returns an allowed imaterial with the given name
 function TTC.GetMaterial(name)
-	if not TTC.Textures[name] then return false end
+    if not TTC.Textures[name] then return false end
 
-	local data = table.Copy(TTC.Shader)
+    local data = table.Copy(TTC.Shader)
 
-	data["$basetexture"] = TTC.Textures[name][1] or data["$basetexture"]
-	data["$bumpmap"] = TTC.Textures[name][2] or data["$bumpmap"]
+    data["$basetexture"] = TTC.Textures[name][1] or data["$basetexture"]
+    data["$bumpmap"] = TTC.Textures[name][2] or data["$bumpmap"]
 
-	local mat = CreateMaterial("ttc_" .. os.time() .. math.random(1, 1000), "VertexLitGeneric", data)
-	local res = mat:Width()/mat:Height()
+    local mat = CreateMaterial("ttc_" .. os.time() .. math.random(1, 1000), "VertexLitGeneric", data)
+    local res = mat:Width()/mat:Height()
 
-	return true, mat, res, name
+    return true, mat, res, name
 end
 
 
@@ -101,45 +121,45 @@ hook.Add("PreDrawSkyBox", "ttc.draw", function() block_sky = true end)
 hook.Add("PostDrawSkyBox", "ttc.draw", function() block_sky = false end)
 
 hook.Add("PostDrawOpaqueRenderables", "ttc.draw", function()
-	if not IsValid(ClientProp) then
-		TTC.ClientProp = ClientsideModel("models/hunter/plates/plate025x025.mdl")
-		TTC.ClientProp:SetNoDraw(true)
-		TTC.ClientProp:Spawn()
+    if not IsValid(ClientProp) then
+        TTC.ClientProp = ClientsideModel("models/hunter/plates/plate025x025.mdl")
+        TTC.ClientProp:SetNoDraw(true)
+        TTC.ClientProp:Spawn()
 
-		ClientProp = TTC.ClientProp
+        ClientProp = TTC.ClientProp
 
-		return
-	end
+        return
+    end
 
     if block_sky or block_all:GetBool() or FrameTime() == 0 then return end
 
     local eyepos = EyePos()
     local eyedir = EyeVector()
 
-	for self, _ in pairs(RenderOverride) do
+    for self, _ in pairs(RenderOverride) do
         if self.blocked then continue end
 
-		if not self.HandleLOD or not self.DoRenderOverride then
-			TTC.RemoveRenderOverride(self)
-			continue
-		end
+        if not self.HandleLOD or not self.DoRenderOverride then
+            TTC.RemoveRenderOverride(self)
+            continue
+        end
 
         if self:HandleLOD(eyepos, eyedir) then self:DoRenderOverride() end
-	end
+    end
 end)
 
 
 -- Add/Remove functions
 function TTC.AddRenderOverride(ent)
-	RenderOverride[ent] = true
+    RenderOverride[ent] = true
 end
 
 function TTC.RemoveRenderOverride(ent)
-	RenderOverride[ent] = nil
+    RenderOverride[ent] = nil
 end
 
 function TTC.GetClientProp()
-	return TTC.ClientProp
+    return TTC.ClientProp
 end
 
 

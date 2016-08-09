@@ -1,6 +1,6 @@
 --[[
-	Tank Track Controller Addon
-	by shadowscion
+    Tank Track Controller Addon
+    by shadowscion
 ]]--
 
 TOOL.Category   = "Construction"
@@ -14,18 +14,19 @@ TOOL.ConfigName = ""
 local table = table
 
 if SERVER then
-	util.AddNetworkString("ttc.tool_hud")
+    util.AddNetworkString("ttc.tool_hud")
 
-	TOOL.Controller = NULL
-	TOOL.Chassis = NULL
-	TOOL.CookieJar = {}
+    TOOL.Controller = NULL
+    TOOL.Chassis = NULL
+    TOOL.CookieJar = {}
+    TOOL.DOT = 0
 end
 
 
 -- TOOL: Make sure we can use the entity
 local function IsPropOwner(ply, ent, singleplayer)
-	if singleplayer then return true end
-	if CPPI then return ent:CPPIGetOwner() == ply end
+    if singleplayer then return true end
+    if CPPI then return ent:CPPIGetOwner() == ply end
 
     for k, v in pairs(g_SBoxObjects) do
         for b, j in pairs(v) do
@@ -35,262 +36,270 @@ local function IsPropOwner(ply, ent, singleplayer)
         end
     end
 
-	return false
+    return false
 end
 
 function TOOL:CanManipulate(ply, trace, world)
-	if not ply then return false end
-	if not trace.Hit then return false end
-	if not trace.Entity then return false end
+    if not ply then return false end
+    if not trace.Hit then return false end
+    if not trace.Entity then return false end
 
-	if trace.Entity:IsWorld() then return world end
-	if string.find(trace.Entity:GetClass(), "npc_") or trace.Entity:GetClass() == "player" or trace.Entity:GetClass() == "prop_ragdoll" then return false end
-	--if trace.Entity:GetClass() ~= "prop_physics" and trace.Entity:GetClass() ~= "gmod_ent_ttc" then return false end
-	if not IsPropOwner(ply, trace.Entity, game.SinglePlayer()) then return false end
+    if trace.Entity:IsWorld() then return world end
+    if string.find(trace.Entity:GetClass(), "npc_") or trace.Entity:GetClass() == "player" or trace.Entity:GetClass() == "prop_ragdoll" then return false end
+    if not IsPropOwner(ply, trace.Entity, game.SinglePlayer()) then return false end
 
-	-- local check_parent = true
-	-- if IsValid(self.Controller) and trace.Entity == self.Controller then check_parent = false end
-	-- if IsValid(self.Chassis) and trace.Entity == self.Chassis then check_parent = false end
-
-	-- if check_parent then
-	-- 	if IsValid(trace.Entity:GetParent()) then
-	-- 		ply:ChatPrint("Parented wheels are not supported!")
-	-- 		return false
-	-- 	end
-	-- end
-
-	return true
+    return true
 end
 
 
 -- TOOL: Send hud stuff
 function TOOL:UpdateClient()
-	net.Start("ttc.tool_hud")
-		net.WriteEntity(self.Controller)
-		net.WriteEntity(self.Chassis)
-	net.Send(self:GetOwner())
+    net.Start("ttc.tool_hud")
+        net.WriteEntity(self.Controller)
+        net.WriteEntity(self.Chassis)
+    net.Send(self:GetOwner())
 end
 
 
 -- TOOL: Add entity to tool selection
 local colors = {
-	Color(0, 0, 255, 125),
-	Color(0, 255, 0, 125),
+    [1] = Color(0, 0, 255, 255), -- controller
+    [2] = Color(46, 204, 113, 255), -- chassis
+    [true] = Color(241, 196, 15, 255), -- rollers
+    [false] = Color(231, 75, 60, 255), -- wheels
 }
 
 function TOOL:OnKeyPropRemove(e)
-	self.Controller = NULL
-	self.Chassis = NULL
-
-	for ent, _ in pairs(self.CookieJar) do
-		if ent == e then self.CookieJar[ent] = nil continue end
-
-		if not self.CookieJar[ent] then continue end
-
-		ent:SetColor(self.CookieJar[ent].Color)
-		ent:SetRenderMode(self.CookieJar[ent].Mode)
-		ent:RemoveCallOnRemove("ttc_tool_select")
-
-		self.CookieJar[ent] = nil
-	end
+    self.Controller = NULL
+    self.Chassis = NULL
+    self.DOT = 0
+    self:DeselectAllEntities()
+    self:SetStage(0)
+    self:UpdateClient()
 end
 
 function TOOL:SelectEntity(ent, notify)
-	if self.CookieJar[ent] then return false end
+    if self.CookieJar[ent] then return false end
 
-	self.CookieJar[ent] = {
-		-- Order = table.Count(self.CookieJar),
-		Color = ent:GetColor(),
-		Mode = ent:GetRenderMode(),
-	}
+    local is_roller = self:GetOwner():KeyDown(IN_SPEED)
+    self.CookieJar[ent] = {
+        Color = ent:GetColor(),
+        Mode = ent:GetRenderMode(),
+        Roller = is_roller,
+    }
 
-	ent:SetColor(colors[table.Count(self.CookieJar)] or Color(255, 255, 0, 125))
-	ent:SetRenderMode(RENDERMODE_TRANSALPHA)
+    ent:SetColor(colors[table.Count(self.CookieJar)] or colors[is_roller] or ent:GetColor())
+    ent:SetRenderMode(RENDERMODE_TRANSALPHA)
 
-	ent:CallOnRemove("ttc_tool_select", function(e)
-		if self.Controller == e or self.Chassis == e then
-			self:OnKeyPropRemove(e)
-			return
-		end
+    ent:CallOnRemove("ttc_tool_select", function(e)
+        if self.Controller == e or self.Chassis == e then
+            self:OnKeyPropRemove(e)
+            return
+        end
 
-		self.CookieJar[e] = nil
-	end)
+        self.CookieJar[e] = nil
+    end)
 
-	if notify then self:GetOwner():ChatPrint("Selected " .. tostring(ent)) end
+    if IsValid(self.Chassis) and ent ~= self.Chassis then
+        self.DOT = self.DOT + (self.Chassis:GetRight():Dot((ent:GetPos() - self.Chassis:GetPos()):GetNormal()) > 0 and 1 or -1)
+    end
 
-	return true
+    if notify then self:GetOwner():ChatPrint("Selected " .. tostring(ent)) end
+
+    return true
 end
 
 
 -- TOOL: Remove entity from tool selection
 function TOOL:DeselectEntity(ent, notify)
-	if not self.CookieJar[ent] then return false end
-	if not IsValid(ent) then self.CookieJar[ent] = nil return false end
+    if not self.CookieJar[ent] then return false end
+    if not IsValid(ent) then self.CookieJar[ent] = nil return false end
 
-	ent:SetColor(self.CookieJar[ent].Color)
-	ent:SetRenderMode(self.CookieJar[ent].Mode)
-	ent:RemoveCallOnRemove("ttc_tool_select")
+    ent:SetColor(self.CookieJar[ent].Color)
+    ent:SetRenderMode(self.CookieJar[ent].Mode)
+    ent:RemoveCallOnRemove("ttc_tool_select")
 
-	if notify then self:GetOwner():ChatPrint("Deselected " .. tostring(ent)) end
+    if IsValid(self.Chassis) and ent ~= self.Chassis then
+        self.DOT = self.DOT - (self.Chassis:GetRight():Dot((ent:GetPos() - self.Chassis:GetPos()):GetNormal()) > 0 and 1 or -1)
+    end
 
-	self.CookieJar[ent] = nil
+    if notify then self:GetOwner():ChatPrint("Deselected " .. tostring(ent)) end
 
-	return true
+    self.CookieJar[ent] = nil
+
+    return true
 end
 
 
 -- TOOL: Remove all entities from tool selection
 function TOOL:DeselectAllEntities()
-	for ent, _ in pairs(self.CookieJar) do
-		self:DeselectEntity(ent)
-	end
+    for ent, _ in pairs(self.CookieJar) do
+        self:DeselectEntity(ent)
+    end
 end
 
 
 -- TOOL: Left Click - Spawning controller
 function TOOL:LeftClick(trace)
-	if CLIENT then return true end
-	if not self:CanManipulate(self:GetOwner(), trace, true) then return false end
+    if CLIENT then return true end
+    if not self:CanManipulate(self:GetOwner(), trace, true) then return false end
 
-	if trace.Entity:GetClass() == "gmod_ent_ttc" then
-		if self:GetOwner():KeyDown(IN_SPEED) then
-			self.CopySettings = table.Copy(trace.Entity:GetNetworkVars())
-		else
-			if not self.CopySettings then return false end
-			for func, value in pairs(self.CopySettings) do
-				if trace.Entity["Set" .. func] then trace.Entity["Set" .. func](trace.Entity, value) end
-			end
-		end
+    if trace.Entity:GetClass() == "gmod_ent_ttc" then
+        if self:GetOwner():KeyDown(IN_SPEED) then
+            self.CopySettings = table.Copy(trace.Entity:GetNetworkVars())
+        else
+            if not self.CopySettings then return false end
+            for func, value in pairs(self.CopySettings) do
+                if trace.Entity["Set" .. func] then trace.Entity["Set" .. func](trace.Entity, value) end
+            end
+        end
 
-		return true
-	end
+        return true
+    end
 
-	local create_new = ents.Create("gmod_ent_ttc")
+    local create_new = ents.Create("gmod_ent_ttc")
 
-	create_new:SetDefaults()
-	create_new:SetPos(trace.HitPos)
-	create_new:SetAngles(trace.HitNormal:Angle() + Angle(90, 0, 0))
-	create_new:Spawn()
-	create_new:Activate()
+    create_new:SetDefaults()
+    create_new:SetPos(trace.HitPos)
+    create_new:SetAngles(trace.HitNormal:Angle() + Angle(90, 0, 0))
+    create_new:Spawn()
+    create_new:Activate()
 
-	create_new:SetNetworkedInt("ownerid", self:GetOwner():UserID())
+    create_new:SetNetworkedInt("ownerid", self:GetOwner():UserID())
 
-	self:GetOwner():AddCount("gmod_ent_ttc", create_new)
-	self:GetOwner():AddCleanup("gmod_ent_ttc", create_new)
+    self:GetOwner():AddCount("gmod_ent_ttc", create_new)
+    self:GetOwner():AddCleanup("gmod_ent_ttc", create_new)
 
-	undo.Create("gmod_ent_ttc")
-		undo.AddEntity(create_new)
-		undo.SetPlayer(self:GetOwner())
-	undo.Finish()
+    undo.Create("gmod_ent_ttc")
+        undo.AddEntity(create_new)
+        undo.SetPlayer(self:GetOwner())
+    undo.Finish()
 
-	if not trace.Entity:IsWorld() then
-		constraint.Weld(create_new, trace.Entity, 0, trace.PhysicsBone, 0, 1, false)
-	end
+    if not trace.Entity:IsWorld() then
+        constraint.Weld(create_new, trace.Entity, 0, trace.PhysicsBone, 0, 1, false)
+    end
 
-	return true
+    return true
 end
 
 
 -- TOOL: Right Click - Selection entities
 function TOOL:RightClick(trace)
-	if CLIENT then return true end
-	if not self:CanManipulate(self:GetOwner(), trace, false) then return false end
+    if CLIENT then return true end
+    if not self:CanManipulate(self:GetOwner(), trace, false) then return false end
 
-	if self.CookieJar[trace.Entity] then
-		if self.Controller == trace.Entity or self.Chassis == trace.Entity then
-			if trace.Entity == self.Controller and IsValid(self.Chassis) then
-				-- local tbl = {}
-				-- for k, v in SortedPairsByMemberValue(self.CookieJar, "Order") do
-				-- 	if v.Order == 0 then continue end
-				-- 	table.insert(tbl, k)
-				-- end
+    if self.CookieJar[trace.Entity] then
+        if self.Controller == trace.Entity or self.Chassis == trace.Entity then
+            if trace.Entity == self.Controller and IsValid(self.Chassis) then
+                local valid = (math.abs(self.DOT) == table.Count(self.CookieJar) - 2)
 
-				local tbl = table.GetKeys(self.CookieJar)
+                if table.Count(self.CookieJar) <= 3 then
+                    self:GetOwner():ChatPrint("You must select more than one wheel!")
+                    return false
+                elseif not valid then
+                    self:GetOwner():ChatPrint("Wheels must be parallel to the green arrow!")
+                else
+                    local tbl = table.GetKeys(self.CookieJar)
 
-				table.RemoveByValue(tbl, self.Controller)
-				table.RemoveByValue(tbl, self.Chassis)
+                    table.RemoveByValue(tbl, self.Controller)
+                    table.RemoveByValue(tbl, self.Chassis)
 
-				table.sort(tbl, function(this, that)
-					return this:GetPos():Distance(self.Chassis:GetPos() + self.Chassis:GetForward()*10000) < that:GetPos():Distance(self.Chassis:GetPos() + self.Chassis:GetForward()*10000)
-				end)
+                    local sort_pos = self.Chassis:GetPos() + self.Chassis:GetForward()*10000
 
-				table.insert(tbl, 1, self.Chassis)
+                    table.sort(tbl, function(a, b)
+                        local bool_this = self.CookieJar[a].Roller
+                        local bool_that = self.CookieJar[b].Roller
 
-				self.Controller:SetLinkedEntities(tbl)
-			end
+                        if bool_this ~= bool_that then
+                            return bool_that and not bool_this
+                        end
 
-			self.Controller = NULL
-			self.Chassis = NULL
-			self:DeselectAllEntities()
-			self:SetStage(0)
+                        if bool_this then
+                            return a:GetPos():Distance(sort_pos) > b:GetPos():Distance(sort_pos)
+                        else
+                            return a:GetPos():Distance(sort_pos) < b:GetPos():Distance(sort_pos)
+                        end
+                    end)
 
-			self:UpdateClient()
+                    table.insert(tbl, 1, self.Chassis)
+                    self.Controller:SetLinkedEntities(tbl)
+                end
+            end
 
-			return true
-		end
+            self.DOT = 0
+            self.Controller = NULL
+            self.Chassis = NULL
+            self:DeselectAllEntities()
+            self:SetStage(0)
 
-		self:DeselectEntity(trace.Entity, false)
-		self:UpdateClient()
+            self:UpdateClient()
 
-		return true
-	end
+            return true
+        end
 
-	if self:GetStage() == 0 then
-		if trace.Entity:GetClass() ~= "gmod_ent_ttc" then
-			self:GetOwner():ChatPrint("Select a controller first!")
-			return false
-		end
+        self:DeselectEntity(trace.Entity, false)
+        self:UpdateClient()
 
-		self:SelectEntity(trace.Entity, false)
-		self.Controller = trace.Entity
-		self:SetStage(1)
-		self:UpdateClient()
+        return true
+    end
 
-		return true
-	end
+    if self:GetStage() == 0 then
+        if trace.Entity:GetClass() ~= "gmod_ent_ttc" then
+            self:GetOwner():ChatPrint("Select a controller first!")
+            return false
+        end
 
-	if self:GetStage() == 1 then
-		self:SelectEntity(trace.Entity, false)
-		self.Chassis = trace.Entity
-		self:SetStage(2)
-		self:UpdateClient()
+        self:SelectEntity(trace.Entity, false)
+        self.Controller = trace.Entity
+        self:SetStage(1)
+        self:UpdateClient()
 
-		return true
-	end
+        return true
+    end
 
-	self:SelectEntity(trace.Entity, false)
+    if self:GetStage() == 1 then
+        self:SelectEntity(trace.Entity, false)
+        self.Chassis = trace.Entity
+        self:SetStage(2)
+        self:UpdateClient()
 
-	return true
+        return true
+    end
+
+    self:SelectEntity(trace.Entity, false)
+
+    return true
 end
 
 
 -- TOOL: Reload - Clearing selection or resetting controller
 function TOOL:Reload(trace)
-	if CLIENT then return true end
+    if CLIENT then return true end
 
-	if not trace.Hit then return false end
-	if not trace.Entity then return false end
+    if not trace.Hit then return false end
+    if not trace.Entity then return false end
 
-	if trace.Entity:IsWorld() then
-		self.CopySettings = nil
-		self.Controller = NULL
-		self.Chassis = NULL
-		self:DeselectAllEntities()
-		self:SetStage(0)
-		self:UpdateClient()
+    if trace.Entity:IsWorld() then
+        self.DOT = 0
+        self.CopySettings = nil
+        self.Controller = NULL
+        self.Chassis = NULL
+        self:DeselectAllEntities()
+        self:SetStage(0)
+        self:UpdateClient()
 
-		return true
-	end
+        return true
+    end
 
-	if trace.Entity:GetClass() ~= "gmod_ent_ttc" then return false end
-	if IsValid(self.Controller) or IsValid(self.Chassis) then return false end
-	if not self:CanManipulate(self:GetOwner(), trace, false) then return false end
+    if trace.Entity:GetClass() ~= "gmod_ent_ttc" then return false end
+    if IsValid(self.Controller) or IsValid(self.Chassis) then return false end
+    if not self:CanManipulate(self:GetOwner(), trace, false) then return false end
 
-	if self:GetOwner():KeyDown(IN_SPEED) then
-		trace.Entity:SetDefaults()
-	else
-		trace.Entity:UnsetLinkedEntities()
-	end
+    if self:GetOwner():KeyDown(IN_SPEED) then
+        trace.Entity:SetDefaults()
+    else
+        trace.Entity:UnsetLinkedEntities()
+    end
 end
 
 
@@ -299,18 +308,34 @@ end
 -- Client
 if SERVER then return end
 
-
 -- TOOL: Language
 language.Add("tool.gmod_tool_ttc.listname", "Tank Tracks")
-language.Add("tool.gmod_tool_ttc.name",     "Tank Tracks")
-language.Add("tool.gmod_tool_ttc.desc",     "Renders animated tank tracks around a group of wheels.")
-language.Add("tool.gmod_tool_ttc.0",        "Left Click: Spawn a controller, hold shift to copy configuration, click another controller to apply copied settings. Right Click: Select a controller. Reload: Clear selection or unlink all entities.")
-language.Add("tool.gmod_tool_ttc.1",        "Right Click: Select your chassis. Reload: Clear selection.")
-language.Add("tool.gmod_tool_ttc.2",        "Right Click: Select your wheels. Select the controller again to finalize. Reload: Clear selection.")
-
+language.Add("tool.gmod_tool_ttc.name", "Tank Tracks")
+language.Add("tool.gmod_tool_ttc.desc", "Renders animated tank tracks around a group of wheels.")
 language.Add("Undone_gmod_ent_ttc", "Undone Tank Track Controllers")
 language.Add("Cleaned_gmod_ent_ttc", "Cleaned up Tank Track Controllers")
 language.Add("Cleanup_gmod_ent_ttc", "Tank Track Controllers")
+
+TOOL.Information = {}
+
+local function ToolInfo(name, desc, stage)
+    table.insert(TOOL.Information, { name = name, stage = stage })
+    language.Add("tool.gmod_tool_ttc." .. name, desc)
+end
+
+-- left click
+ToolInfo("left_1", "Spawn a new controller, or hold SHIFT to copy settings, click another controller to apply copied settings", 0)
+
+-- Right click
+ToolInfo("right_1", "Select a controller", 0)
+ToolInfo("right_2", "Select a chassis", 1)
+ToolInfo("right_3a", "Select all wheels, hold SHIFT while selecting return rollers, select the controller again to finalize", 2)
+ToolInfo("info_2", "Wheels must be parallel to the green arrow", 2)
+
+-- Reload
+ToolInfo("reload_1", "Unlink all entities from controller, or hold SHIFT to reset controller to default settings", 0)
+ToolInfo("reload_3a", "Deselect all entities", 1)
+ToolInfo("reload_3b", "Deselect all entities", 2)
 
 
 -- TOOL: Hud
@@ -327,92 +352,106 @@ local render = render
 local surface = surface
 local IsValid = IsValid
 
+--local laserMat = Material("effects/laser_tracer")
+local laserMat2 = Material( "widgets/arrow.png", "unlitsmooth" )
+
 net.Receive("ttc.tool_hud", function()
-	Controller = net.ReadEntity() or NULL
-	Chassis = net.ReadEntity() or NULL
+    Controller = net.ReadEntity() or NULL
+    Chassis = net.ReadEntity() or NULL
 end)
 
 function TOOL:DrawHUD()
-	local trace = LocalPlayer():GetEyeTrace()
-	if not trace.Hit then return end
+    local trace = LocalPlayer():GetEyeTrace()
+    if not trace.Hit then return end
 
-	if enable_hud_helpers:GetBool() then
-		if IsValid(Controller) then
-			local pos = Controller:GetPos():ToScreen()
-			draw.SimpleText("Controller (" .. Controller:EntIndex() .. ")", "BudgetLabel", pos.x, pos.y)
-		end
+    -- always show this, to avoid any confusion of how wheels should be set up
+    if IsValid(Chassis) then
+        local min, max = Chassis:OBBMins(), Chassis:OBBMaxs()
+        cam.Start3D()
+            render.SetMaterial(laserMat2)
+            render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, 0, 0)), Chassis:LocalToWorld(Vector(max.x, 0, 0)), 4, 1, 0, HSVToColor(140, 0.77, 1))
+            render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, min.y, 0)), Chassis:LocalToWorld(Vector(max.x, min.y, 0)), 4, 1, 0, HSVToColor(5, 0.73, 1))
+            render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, max.y, 0)), Chassis:LocalToWorld(Vector(max.x, max.y, 0)), 4, 1, 0, HSVToColor(5, 0.73, 1))
+        cam.End3D()
+    end
 
-		if IsValid(Chassis) then
-			local pos = Chassis:GetPos():ToScreen()
+    -- disable if hud helpers are disabled
+    if enable_hud_helpers:GetBool() then
+        if IsValid(Controller) then
+            local pos = Controller:GetPos():ToScreen()
+            draw.SimpleText("Controller (" .. Controller:EntIndex() .. ")", "BudgetLabel", pos.x, pos.y)
+        end
 
-			draw.SimpleText("Chassis (" .. Chassis:EntIndex() .. ")", "BudgetLabel", pos.x, pos.y)
+        if not trace.Entity or trace.Entity:IsWorld() then return end
 
-			local dir_f = Chassis:LocalToWorld(Vector(12, 0, 0)):ToScreen()
-			local dir_r = Chassis:LocalToWorld(Vector(0, 12, 0)):ToScreen()
-			local dir_u = Chassis:LocalToWorld(Vector(0, 0, 12)):ToScreen()
+        if IsValid(Controller) then
+            cam.Start3D()
+                local min, max = trace.Entity:GetCollisionBounds()
+                render.DrawWireframeBox(trace.Entity:GetPos(), trace.Entity:GetAngles(), min, max, Color(150, 150, 150, 255), true)
+            cam.End3D()
+        end
+    end
 
-			surface.SetDrawColor(0, 255, 0, 200)
-			surface.DrawLine(pos.x, pos.y, dir_f.x, dir_f.y)
+    -- disable if hud markers are disabled
+    if enable_hud_markers:GetBool() then
+        if not trace.Entity or trace.Entity:IsWorld() then return end
 
-			surface.SetDrawColor(255, 0, 0, 200)
-			surface.DrawLine(pos.x, pos.y, dir_r.x, dir_r.y)
+        if trace.Entity:GetClass() == "gmod_ent_ttc" and self:GetStage() == 0 then
+            if trace.Entity:GetNetworkedInt("ownerid") ~= LocalPlayer():UserID() then return end
 
-			surface.SetDrawColor(0, 0, 255, 200)
-			surface.DrawLine(pos.x, pos.y, dir_u.x, dir_u.y)
-		end
+            local pos = trace.Entity:GetPos()
+            local fade = 1 - math.min(500, pos:Distance(EyePos())) / 500
 
-		if not trace.Entity or trace.Entity:IsWorld() then return end
+            if fade == 0 then return end
 
-		if IsValid(Controller) then
-			cam.Start3D()
-				local min, max = trace.Entity:GetCollisionBounds()
-				render.DrawWireframeBox(trace.Entity:GetPos(), trace.Entity:GetAngles(), min, max, Color(150, 150, 150, 255), true)
-			cam.End3D()
-		end
-	end
+            pos = pos:ToScreen()
 
-	if enable_hud_markers:GetBool() then
-		if not trace.Entity or trace.Entity:IsWorld() then return end
+            cam.Start3D()
+                local min, max = trace.Entity:GetCollisionBounds()
+                render.DrawWireframeBox(trace.Entity:GetPos(), trace.Entity:GetAngles(), min, max, Color(150, 150, 150, 255*fade), true)
+            cam.End3D()
 
-		if trace.Entity:GetClass() == "gmod_ent_ttc" and self:GetStage() == 0 then
-			if trace.Entity:GetNetworkedInt("ownerid") ~= LocalPlayer():UserID() then return end
+            if IsValid(trace.Entity.ttc_chassis) then
+                local lpos = trace.Entity.ttc_chassis:GetPos():ToScreen()
 
-			local pos = trace.Entity:GetPos()
-			local fade = 1 - math.min(500, pos:Distance(EyePos())) / 500
+                surface.SetDrawColor(46, 204, 113, 255*fade)
+                surface.DrawLine(pos.x, pos.y, lpos.x, lpos.y)
+                surface.DrawRect(lpos.x - 3, lpos.y - 3, 6, 6)
+            end
 
-			if fade == 0 then return end
+            for i, wheel in ipairs(trace.Entity.ttc_wheels) do
+                if not IsValid(wheel.ent) then continue end
 
-			pos = pos:ToScreen()
+                local lpos = wheel.ent:GetPos():ToScreen()
 
-			cam.Start3D()
-				local min, max = trace.Entity:GetCollisionBounds()
-				render.DrawWireframeBox(trace.Entity:GetPos(), trace.Entity:GetAngles(), min, max, Color(150, 150, 150, 255*fade), true)
-			cam.End3D()
+                local r, g, b
+                if wheel.ent == trace.Entity.ttc_sprocket then
+                    r, g, b = 52, 152, 219
+                    surface.SetDrawColor(r, g, b, 255*fade)
+                    surface.DrawLine(pos.x, pos.y, lpos.x, lpos.y)
+                else
+                    if i > #trace.Entity.ttc_wheels - trace.Entity.ttc_rollercount then
+                        r, g, b = 241, 196, 15
+                    else
+                        r, g, b = 231, 75, 60
+                    end
+                end
 
-			for _, ent in ipairs(trace.Entity.ttc_wheels) do
-				if not IsValid(ent) then continue end
-				local lpos = ent:GetPos():ToScreen()
-				if ent == trace.Entity.ttc_sprocket then surface.SetDrawColor(100, 100, 255, 150*fade) else surface.SetDrawColor(255, 100, 100, 100*fade) end
-				surface.DrawLine(pos.x, pos.y, lpos.x, lpos.y)
-				surface.DrawRect(lpos.x - 3, lpos.y - 3, 6, 6)
-			end
+                surface.SetDrawColor(r, g, b, 255*fade)
+                surface.DrawRect(lpos.x - 3, lpos.y - 3, 6, 6)
+            end
 
-			if IsValid(trace.Entity.ttc_chassis) then
-				local lpos = trace.Entity.ttc_chassis:GetPos():ToScreen()
-				surface.SetDrawColor(100, 255, 100, 100*fade)
-				surface.DrawLine(pos.x, pos.y, lpos.x, lpos.y)
-				surface.DrawRect(lpos.x - 3, lpos.y - 3, 6, 6)
-			end
+            for i = 1, #trace.Entity.ttc_spline - 1 do
+                local p1 = trace.Entity.ttc_spline[i]:ToScreen()
+                local p2 = trace.Entity.ttc_spline[i + 1]:ToScreen()
 
-			surface.SetDrawColor(255, 255, 255, 100*fade)
-			for i = 1, #trace.Entity.ttc_spline - 1 do
-				local p1 = trace.Entity.ttc_spline[i]:ToScreen()
-				local p2 = trace.Entity.ttc_spline[i + 1]:ToScreen()
-				surface.DrawLine(p1.x, p1.y, p2.x, p2.y)
-				surface.DrawRect(p1.x - 3, p1.y - 3, 6, 6)
-			end
-		end
-	end
+                surface.SetDrawColor(189, 195, 199, 100*fade)
+                surface.DrawLine(p1.x, p1.y, p2.x, p2.y)
+                surface.SetDrawColor(189, 195, 199, 255*fade)
+                surface.DrawRect(p1.x - 2, p1.y - 2, 4, 4)
+            end
+        end
+    end
 end
 
 
@@ -428,22 +467,22 @@ function TOOL.BuildCPanel(self)
     })
 
     self:AddControl("Toggle", {
-    	Label = "Enable HUD Selection Helpers",
-    	Command = "ttc_hud_helpers",
+        Label = "Enable HUD Selection Helpers",
+        Command = "ttc_hud_helpers",
     })
 
     self:AddControl("Toggle", {
-    	Label = "Enable HUD Entity Markers",
-    	Command = "ttc_hud_markers",
+        Label = "Enable HUD Entity Markers",
+        Command = "ttc_hud_markers",
     })
 
     self:AddControl("Toggle", {
-    	Label = "Disable Rendering",
-    	Command = "ttc_block_all",
+        Label = "Disable Rendering",
+        Command = "ttc_block_all",
     })
 
     self:AddControl("Button", {
-    	Label = "Refresh All",
-    	Command = "ttc_refresh",
+        Label = "Refresh All",
+        Command = "ttc_refresh",
     })
 end

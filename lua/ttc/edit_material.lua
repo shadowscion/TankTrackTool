@@ -1,6 +1,6 @@
 --[[
-	Tank Track Controller Addon
-	by shadowscion
+    Tank Track Controller Addon
+    by shadowscion
 ]]--
 
 local TTC = TTC
@@ -13,11 +13,11 @@ function MaterialProperty:Init()
 end
 
 function MaterialProperty:ValueChanged(newval, bForce)
-	if not TTC.Textures[newval] then return end
+    if not TTC.Textures[newval] then return end
 
-	BaseClass.ValueChanged(self, newval, bForce)
-	self.StringValue = tostring(newval)
-	self.Material = Material("tanktrack_controller/" .. newval)
+    BaseClass.ValueChanged(self, newval, bForce)
+    self.StringValue = tostring(newval)
+    self.Material = Material("tanktrack_controller/" .. newval)
 end
 
 function MaterialProperty:Setup(vars)
@@ -45,7 +45,7 @@ function MaterialProperty:Setup(vars)
     end
 
     btn.DoClick = function()
-    	if not TTC or not TTC.Textures then return end
+        if not TTC or not TTC.Textures then return end
 
         local mat_menu = vgui.Create("DFrame", self)
 

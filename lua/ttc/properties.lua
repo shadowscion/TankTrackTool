@@ -1,7 +1,8 @@
 --[[
-	Tank Track Controller Addon
-	by shadowscion
+    Tank Track Controller Addon
+    by shadowscion
 ]]--
+
 
 properties.Add("ttc_context_edit", {
     MenuLabel = "Configure Track Settings",
@@ -13,6 +14,7 @@ properties.Add("ttc_context_edit", {
         if (!IsValid(ent)) then return false end
         if (!ent.Editable) then return false end
         if (!gamemode.Call("CanProperty", ply, "ttc_context_edit", ent)) then return false end
+        if ent:GetClass() ~= "gmod_ent_ttc" then return false end
 
         return true
     end,
@@ -20,7 +22,7 @@ properties.Add("ttc_context_edit", {
     Action = function(self, ent)
         local context = g_ContextMenu:Add("DFrame")
             context:SetTitle("")
-            context:SetSize(320, 320)
+            context:SetSize(320, 360)
             context:SetPos(12, context:GetTall()/2)
             context:SetSizable(false)
             context:SetDraggable(true)
@@ -70,6 +72,10 @@ properties.Add("ttc_context_edit", {
                 txt_color = Color(225, 225, 225)
             end
 
+        local ttpanel = context:Add("DLabel")
+        ttpanel:Dock(BOTTOM)
+        ttpanel:SetText("")
+
         local epanel = context:Add("DEntityProperties")
             epanel:SetEntity(ent)
             epanel:Dock(FILL)
@@ -84,11 +90,15 @@ properties.Add("ttc_context_edit", {
             epanel.Categories["Physics"].Expand:SetExpanded(true)
             epanel.Categories["Physics"].Expand.DoClick = function() end
 
-            -- epanel.Categories["Main"].Container:DockMargin(0, 0, 0, 0)
-            -- epanel.Categories["Main"].Header:SetVisible(false)
-            -- epanel.Categories["Main"].Label:SetVisible(false)
-            -- epanel.Categories["Main"].Expand:SetVisible(false)
-            -- epanel.Categories["Main"].Expand:SetExpanded(true)
+            for _, cat in pairs(epanel.Categories) do
+                if _ == "Main" then continue end
+                for name, panel in pairs(cat.Rows) do
+                    local tooltip = "#ttc_tooltip_" .. string.gsub(name, " ", "")
+                    panel.OnCursorEntered = function()
+                        ttpanel:SetText("" .. tooltip)
+                    end
+                end
+            end
 
             epanel.OnEntityLost = function()
                 context:Remove()
