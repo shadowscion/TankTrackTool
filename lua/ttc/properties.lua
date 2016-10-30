@@ -22,7 +22,7 @@ properties.Add("ttc_context_edit", {
     Action = function(self, ent)
         local context = g_ContextMenu:Add("DFrame")
             context:SetTitle("")
-            context:SetSize(320, 360)
+            context:SetSize(320, 370)
             context:SetPos(12, context:GetTall()/2)
             context:SetSizable(false)
             context:SetDraggable(true)

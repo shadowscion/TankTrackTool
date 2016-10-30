@@ -25,7 +25,8 @@ if CLIENT then
     -- dimensions
     language.Add("ttc_tooltip_Width",  "Width of the track.")
     language.Add("ttc_tooltip_Height", "Height of the track.")
-    language.Add("ttc_tooltip_Radius", "Offset the radius of the outermost wheels.")
+    language.Add("ttc_tooltip_Radius", "Offset the radius of the sprocket, idler and road wheels.")
+    language.Add("ttc_tooltip_RollerRadius", "Offset the radius of the return roller wheels.")
     language.Add("ttc_tooltip_Offset", "Offset the entire track to the left or right of the chassis.")
 
     -- physics
@@ -44,12 +45,13 @@ function ENT:SetupDataTables()
 
     self:NetworkVar("Float", 0, "TTC_Width", { KeyName = "ttc_width", Edit = { category = "Dimensions", type = "Float", title = "Width", min = 1, max = 64, order = 4 } })
     self:NetworkVar("Float", 1, "TTC_Height", { KeyName = "ttc_height", Edit = { category = "Dimensions", type = "Float", title = "Height", min = 1, max = 12, order = 5 } })
-    self:NetworkVar("Float", 3, "TTC_Radius", { KeyName = "ttc_radius", Edit = { category = "Dimensions", type = "Float", title = "Radius", min = -1, max = 12, order = 6 } })
-    self:NetworkVar("Float", 2, "TTC_Offset", { KeyName = "ttc_offset", Edit = { category = "Dimensions", type = "Float", title = "Offset", min = -64, max = 64, order = 7 } })
+    self:NetworkVar("Float", 3, "TTC_Radius", { KeyName = "ttc_radius", Edit = { category = "Dimensions", type = "Float", title = "Radius", min = -2, max = 12, order = 6 } })
+    self:NetworkVar("Float", 5, "TTC_RollerRadius", { KeyName = "ttc_rollerradius", Edit = { category = "Dimensions", type = "Float", title = "Roller Radius", min = -2, max = 12, order = 7 } })
+    self:NetworkVar("Float", 2, "TTC_Offset", { KeyName = "ttc_offset", Edit = { category = "Dimensions", type = "Float", title = "Offset", min = -64, max = 64, order = 8 } })
 
-    self:NetworkVar("Int", 1, "TTC_Sprocket", { KeyName = "ttc_sprocket", Edit = { category = "Physics", type = "Int", title = "Sprocket", min = 1, max = 64, order = 8 } })
-    self:NetworkVar("Float", 4, "TTC_Tension", { KeyName = "ttc_tensor", Edit = { category = "Physics", type = "Float", title = "Tension", min = 0, max = 1, order = 9 } })
-    self:NetworkVar("Bool", 1, "TTC_Type", { KeyName = "ttc_type", Edit = { category = "Physics", type = "Boolean", title = "Slack", order = 10 } })
+    self:NetworkVar("Int", 1, "TTC_Sprocket", { KeyName = "ttc_sprocket", Edit = { category = "Physics", type = "Int", title = "Sprocket", min = 1, max = 64, order = 9 } })
+    self:NetworkVar("Float", 4, "TTC_Tension", { KeyName = "ttc_tensor", Edit = { category = "Physics", type = "Float", title = "Tension", min = 0, max = 1, order = 10 } })
+    self:NetworkVar("Bool", 1, "TTC_Type", { KeyName = "ttc_type", Edit = { category = "Physics", type = "Boolean", title = "Slack", order = 11 } })
 end
 
 function ENT:SetupWheelCount()
@@ -75,6 +77,7 @@ function ENT:SetDefaults()
     self:SetTTC_Width(12)
     self:SetTTC_Height(3)
     self:SetTTC_Radius(0)
+    self:SetTTC_RollerRadius(0)
     self:SetTTC_Offset(0)
 
     -- physics

@@ -169,6 +169,7 @@ function TOOL:LeftClick(trace)
 
     self:GetOwner():AddCount("gmod_ent_ttc", create_new)
     self:GetOwner():AddCleanup("gmod_ent_ttc", create_new)
+    self:GetOwner():ChatPrint("You can edit this controller using the context menu (hold C and right click it).")
 
     undo.Create("gmod_ent_ttc")
         undo.AddEntity(create_new)
@@ -178,6 +179,8 @@ function TOOL:LeftClick(trace)
     if not trace.Entity:IsWorld() then
         constraint.Weld(create_new, trace.Entity, 0, trace.PhysicsBone, 0, 1, false)
     end
+
+    create_new:SetCollisionGroup(COLLISION_GROUP_NONE)
 
     return true
 end
@@ -352,13 +355,13 @@ local render = render
 local surface = surface
 local IsValid = IsValid
 
---local laserMat = Material("effects/laser_tracer")
-local laserMat2 = Material( "widgets/arrow.png", "unlitsmooth" )
+local arrow_mat = Material( "widgets/arrow.png", "unlitsmooth" )
 
 net.Receive("ttc.tool_hud", function()
     Controller = net.ReadEntity() or NULL
     Chassis = net.ReadEntity() or NULL
 end)
+
 
 function TOOL:DrawHUD()
     local trace = LocalPlayer():GetEyeTrace()
@@ -368,7 +371,7 @@ function TOOL:DrawHUD()
     if IsValid(Chassis) then
         local min, max = Chassis:OBBMins(), Chassis:OBBMaxs()
         cam.Start3D()
-            render.SetMaterial(laserMat2)
+            render.SetMaterial(arrow_mat)
             render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, 0, 0)), Chassis:LocalToWorld(Vector(max.x, 0, 0)), 4, 1, 0, HSVToColor(140, 0.77, 1))
             render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, min.y, 0)), Chassis:LocalToWorld(Vector(max.x, min.y, 0)), 4, 1, 0, HSVToColor(5, 0.73, 1))
             render.DrawBeam(Chassis:LocalToWorld(Vector(min.x, max.y, 0)), Chassis:LocalToWorld(Vector(max.x, max.y, 0)), 4, 1, 0, HSVToColor(5, 0.73, 1))
@@ -379,7 +382,7 @@ function TOOL:DrawHUD()
     if enable_hud_helpers:GetBool() then
         if IsValid(Controller) then
             local pos = Controller:GetPos():ToScreen()
-            draw.SimpleText("Controller (" .. Controller:EntIndex() .. ")", "BudgetLabel", pos.x, pos.y)
+            draw.SimpleTextOutlined("Controller (" .. Controller:EntIndex() .. ")", "Trebuchet24", pos.x, pos.y, Color(255, 255, 255), 0, 0, 1, Color(0, 0, 0, 255))
         end
 
         if not trace.Entity or trace.Entity:IsWorld() then return end
@@ -405,6 +408,8 @@ function TOOL:DrawHUD()
             if fade == 0 then return end
 
             pos = pos:ToScreen()
+
+            draw.SimpleTextOutlined("Edit me!", "Trebuchet24", pos.x, pos.y, Color(255, 255, 255, 255*fade), 0, 0, 1, Color(0, 0, 0, 255*fade))
 
             cam.Start3D()
                 local min, max = trace.Entity:GetCollisionBounds()
@@ -474,6 +479,11 @@ function TOOL.BuildCPanel(self)
     self:AddControl("Toggle", {
         Label = "Enable HUD Entity Markers",
         Command = "ttc_hud_markers",
+    })
+
+    self:AddControl("Toggle", {
+        Label = "Enable Damaged Track Textures",
+        Command = "ttc_render_damage",
     })
 
     self:AddControl("Toggle", {

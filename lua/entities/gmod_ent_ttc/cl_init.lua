@@ -25,6 +25,7 @@ local math_ceil = math.ceil
 local math_atan2 = math.atan2
 local math_round = math.Round
 
+local IsValid = IsValid
 local Matrix = Matrix
 local Vector = Vector
 local Angle = Angle
@@ -32,6 +33,8 @@ local Angle = Angle
 local color_white = Color(255, 255, 255, 255)
 local vector_zero = Vector()
 local angle_zero = Angle()
+
+local acf_support = CreateClientConVar("ttc_render_damage", "0", true, false)
 
 
 -- Can't use physobj functions on client, have to workaround like this
@@ -60,6 +63,10 @@ function ENT:Initialize()
     self.ttc_sprocket = NULL
     self.ttc_wheels = {}
     self.ttc_rollercount = 0
+
+    self.ttc_acfhealth = 0
+    self.ttc_acfpercent = 0
+    self.ttc_acfdamage = Matrix()
 
     -- tables
     self.ttc_nodecount = 0
@@ -126,11 +133,11 @@ end
 local function real_radius(ent)
     if ent:GetHitBoxBounds(0, 0) then
         local min, max = ent:GetHitBoxBounds(0, 0)
-        local bounds = Vector(math_abs(min.x) + math_abs(max.x), math_abs(min.y) + math_abs(max.y), math_abs(min.z) + math_abs(max.z))*0.5
+        local bounds = (max - min)*0.5
+        --local bounds = Vector(math_abs(min.x) + math_abs(max.x), math_abs(min.y) + math_abs(max.y), math_abs(min.z) + math_abs(max.z))*0.5
         return math_max(bounds.x, bounds.y, bounds.z)
     end
     return ent:GetModelRadius() or 12
-    --return math_abs((ent:GetHitBoxBounds(0, 0) and ent:GetHitBoxBounds(0, 0).z) or ent:GetModelRadius() or 12)
 end
 
 
@@ -151,6 +158,8 @@ function ENT:UpdateLinks(tbl)
             ent = ent,
             rad = math_round(real_radius(ent), 2),
         })
+
+        self.ttc_acfhealth = self.ttc_acfhealth + 1
     end
 
     self:SetupWheelCount()
@@ -217,6 +226,7 @@ function ENT:DoRenderOverride()
 end
 
 
+-- TTC: Generate nodes from wheels
 function ENT:GenerateNodes()
     self.ttc_nodes = {}
     self.ttc_nodecount = 0
@@ -261,7 +271,8 @@ local function bisect_spline(spline, split, tensor, maxdetail)
     local point1 = spline[index]
     local point2 = spline[index + 1]
 
-    local dist = math_min(maxdetail or 4, math_ceil(point1:Distance(point2) / 100) + 1)
+    --local dist = math_min(maxdetail or 4, math_ceil(point1:Distance(point2) / 100) + 1) -- make dependent on detail var
+    local dist = maxdetail or 2
     local step = 180/dist
 
     for b = 1, dist - 1 do
@@ -270,6 +281,7 @@ local function bisect_spline(spline, split, tensor, maxdetail)
 end
 
 
+-- TTC: Generate spline between nodes
 function ENT:GenerateSpline()
     self.ttc_spline = {}
 
@@ -291,7 +303,7 @@ function ENT:GenerateSpline()
         local dir_switch = (dir_next.x > 0) == (dir_prev.x > 0)
 
         local atan_next, atan_prev
-        local radius = self.ttc_wheels[i].rad + (dir_switch and self:GetTTC_Radius() or 0)
+        local radius = self.ttc_wheels[i].rad + (self.ttc_rollercount >= 0 and self:GetTTC_RollerRadius() or self:GetTTC_Radius()) --(dir_switch and self:GetTTC_Radius() or 0) --+ self:GetTTC_Height()*0.25
 
         if dir_next.x < 0 then
             atan_next = math_deg(math_atan2(-dir_next.x, -dir_next.z))
@@ -319,7 +331,7 @@ function ENT:GenerateSpline()
 
         if self.ttc_rollercount > 0 then
             if self:GetTTC_Tension() < 1 then
-                bisect_spline(self.ttc_spline, math_max(0, num_split), -cache_chassis_up*(1 - self:GetTTC_Tension())*2)
+                bisect_spline(self.ttc_spline, math_max(0, num_split), -cache_chassis_up*(1 - self:GetTTC_Tension())*2, detail - 1)
             end
         end
     end
@@ -327,7 +339,7 @@ function ENT:GenerateSpline()
     if self.ttc_rollercount > 0 then
         self.ttc_spline[#self.ttc_spline + 1] = self.ttc_spline[1]
         if self:GetTTC_Tension() < 1 then
-            bisect_spline(self.ttc_spline, 0, -cache_chassis_up*(1 - self:GetTTC_Tension())*2)
+            bisect_spline(self.ttc_spline, 0, -cache_chassis_up*(1 - self:GetTTC_Tension())*2, detail - 1)
         end
     else
         if wrap then
@@ -383,6 +395,32 @@ function ENT:GenerateSpline()
 end
 
 
+-- TTC: ACF Damage Textures
+function ENT:RenderACFDamage()
+    if not acf_support:GetBool() or not TTC.Shader["$detail"] then
+        self.ttc_mat:SetFloat("$detailblendfactor", 0)
+        return false
+    end
+
+    local health = 0
+    for i = 1, self.ttc_acfhealth do
+        if self.ttc_wheels[i] then
+            health = health + (self.ttc_wheels[i].ent.ACF_HelathPercent or 1)
+        end
+    end
+    self.ttc_acfpercent = 1 - health/self.ttc_acfhealth
+
+    if self.ttc_acfpercent < 1 and self.ttc_acfpercent > 0 then
+        self.ttc_mat:SetFloat("$detailblendfactor", math_min(self.ttc_acfpercent*2, 1))
+        self.ttc_acfdamage:SetTranslation(Vector(0, self.ttc_mat_scr, 0))
+    else
+        self.ttc_mat:SetFloat("$detailblendfactor", 0)
+    end
+
+    return true
+end
+
+
 -- TTC: Rendering
 function ENT:RenderTrackMesh()
     local ClientProp = TTC.ClientProp
@@ -397,11 +435,12 @@ function ENT:RenderTrackMesh()
         self.ttc_sprocket = self.ttc_wheels[index] and self.ttc_wheels[index].ent
 
         if IsValid(self.ttc_sprocket) then
-            self.ttc_mat_map = self.ttc_mat_res*(self.ttc_scalev.y*12*16)*4
+            self.ttc_mat_map = self.ttc_mat_res*(self.ttc_scalev.y*12*16)*4 -- 128x256
+            --self.ttc_mat_map = self.ttc_mat_res*(self.ttc_scalev.y*12*16) -- 256x256
 
-            --local radius = real_radius(self.ttc_sprocket) + self:GetTTC_Radius() + self:GetTTC_Height()*0.5
             local radius = self.ttc_wheels[index].rad + self:GetTTC_Radius() + self:GetTTC_Height()*0.5
-            local scroll = getAngularVelocity(self.ttc_chassis, self.ttc_sprocket)/(self.ttc_mat_map/(radius/4))
+            local scroll = getAngularVelocity(self.ttc_chassis, self.ttc_sprocket)/(self.ttc_mat_map/(radius/4)) -- 128x256
+            --local scroll = getAngularVelocity(self.ttc_chassis, self.ttc_sprocket)/(self.ttc_mat_map/(radius/8)) -- 256x256
 
             if self:GetTTC_FlipMat() then scroll = -scroll end
 
@@ -415,6 +454,8 @@ function ENT:RenderTrackMesh()
     render.SetColorModulation(color.r, color.g, color.b)
     render.ModelMaterialOverride(self.ttc_mat or TTC.Fallback_Material)
 
+    local damage = self:RenderACFDamage()
+
     for i = 1, #self.ttc_spline - 1 do
         local p1 = self.ttc_spline[i + 1]
         local p2 = self.ttc_spline[i]
@@ -424,8 +465,15 @@ function ENT:RenderTrackMesh()
         self.ttc_scalem:SetScale(self.ttc_scalev)
 
         if not self.ttc_lod and self.ttc_mat then
-            self.ttc_mat_sca.y = di:Length()*16/self.ttc_mat_map
+            self.ttc_mat_sca.y = di:Length()*16/self.ttc_mat_map -- 128x256
             self.ttc_mat:SetVector("$newscale", self.ttc_mat_sca)
+        end
+
+        if damage then
+            if self.ttc_acfpercent < 1 and self.ttc_acfpercent > 0 then
+                self.ttc_acfdamage:SetScale(self.ttc_mat_sca)
+                self.ttc_mat:SetMatrix("$detailtexturetransform", self.ttc_acfdamage)
+            end
         end
 
         ClientProp:SetRenderOrigin((p1 + p2)*0.5)

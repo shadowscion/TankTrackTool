@@ -37,6 +37,7 @@ TTC.Models = {
     ["no_teeth"] = "models/tanktrack_controller/track_segment.mdl",
 }
 
+
 for k, v in pairs(TTC.Models) do
     if file.Exists(v, "GAME") then
         continue
@@ -48,6 +49,7 @@ end
 
 
 -- Allowed materials
+/*
 TTC.Textures = {
     ["track1"] = { "tanktrack_controller/track1_d", "tanktrack_controller/track1_n" },
     ["track2"] = { "tanktrack_controller/track2_d", "tanktrack_controller/track2_n" },
@@ -56,6 +58,12 @@ TTC.Textures = {
     ["track5"] = { "tanktrack_controller/track5_d", "tanktrack_controller/track5_n" },
     ["track6"] = { "tanktrack_controller/track6_d", "tanktrack_controller/track6_n" },
     ["track7"] = { "tanktrack_controller/track7_d", "tanktrack_controller/track7_n" },
+
+    ["track9"] = { "tanktrack_controller/track8_d", "tanktrack_controller/track8_n" },
+    ["track9"] = { "tanktrack_controller/track9_d", "tanktrack_controller/track9_n" },
+    ["track10"] = { "tanktrack_controller/track10_d", "tanktrack_controller/track10_n" },
+    ["track11"] = { "tanktrack_controller/track11_d", "tanktrack_controller/track11_n" },
+    ["track12"] = { "tanktrack_controller/track12_d", "tanktrack_controller/track12_n" },
 }
 
 for k, v in pairs(TTC.Textures) do
@@ -65,6 +73,26 @@ for k, v in pairs(TTC.Textures) do
     end
 
     TTC.Textures[k] = nil
+end
+*/
+
+TTC.Textures = {}
+
+local path = "tanktrack_controller/"
+local dir = "materials/" .. path
+
+for _, ffile in pairs(file.Find( dir .. "*." .. "vmt", "GAME"), true) do
+    local name = string.StripExtension(ffile)
+
+    local dpath = name .. "_d"
+    local npath = name .. "_n"
+
+    if file.Exists(dir .. dpath .. ".vtf", "GAME") then
+        TTC.Textures[name] = { path .. dpath }
+        if file.Exists(dir .. npath .. ".vtf", "GAME") then
+            TTC.Textures[name][2] = path .. npath
+        end
+    end
 end
 
 
@@ -95,6 +123,14 @@ TTC.Shader = {
         },
     }
 }
+
+if file.Exists("materials/tanktrack_controller/damaged/damaged1.vtf", "GAME") then
+    TTC.Shader["$detail"] = "tanktrack_controller/damaged/damaged1"
+    TTC.Shader["$detailscale"] = "1"
+    TTC.Shader["$detailblendfactor"] = "0"
+    TTC.Shader["$detailblendmode"] = "2"
+    TTC.Shader["$detailtexturetransform"] = "center 0.5 0.5 scale 1 1 rotate 0 translate 0 0"
+end
 
 
 -- Returns an allowed imaterial with the given name
