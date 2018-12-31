@@ -49,50 +49,33 @@ end
 
 
 -- Allowed materials
-/*
-TTC.Textures = {
-    ["track1"] = { "tanktrack_controller/track1_d", "tanktrack_controller/track1_n" },
-    ["track2"] = { "tanktrack_controller/track2_d", "tanktrack_controller/track2_n" },
-    ["track3"] = { "tanktrack_controller/track3_d", "tanktrack_controller/track3_n" },
-    ["track4"] = { "tanktrack_controller/track4_d", "tanktrack_controller/track4_n" },
-    ["track5"] = { "tanktrack_controller/track5_d", "tanktrack_controller/track5_n" },
-    ["track6"] = { "tanktrack_controller/track6_d", "tanktrack_controller/track6_n" },
-    ["track7"] = { "tanktrack_controller/track7_d", "tanktrack_controller/track7_n" },
-
-    ["track9"] = { "tanktrack_controller/track8_d", "tanktrack_controller/track8_n" },
-    ["track9"] = { "tanktrack_controller/track9_d", "tanktrack_controller/track9_n" },
-    ["track10"] = { "tanktrack_controller/track10_d", "tanktrack_controller/track10_n" },
-    ["track11"] = { "tanktrack_controller/track11_d", "tanktrack_controller/track11_n" },
-    ["track12"] = { "tanktrack_controller/track12_d", "tanktrack_controller/track12_n" },
-}
-
-for k, v in pairs(TTC.Textures) do
-    if file.Exists(string.format("materials/%s.vtf", v[1]), "GAME") and
-       (v[2] == nil or file.Exists(string.format("materials/%s.vtf", v[2]), "GAME")) then
-       continue
-    end
-
-    TTC.Textures[k] = nil
-end
-*/
-
 TTC.Textures = {}
 
-local path = "tanktrack_controller/"
-local dir = "materials/" .. path
+local paths = {
+	[1] = { path = "tanktrack_controller/", legacy = true },
+	[2] = { path = "tanktrack_controller_new/", legacy = false },
+}
 
-for _, ffile in pairs(file.Find( dir .. "*." .. "vmt", "GAME"), true) do
-    local name = string.StripExtension(ffile)
+for pindex, paths in ipairs(paths) do
+	local path = paths.path
+	local dir = "materials/" .. path
 
-    local dpath = name .. "_d"
-    local npath = name .. "_n"
+	for _, ffile in pairs(file.Find( dir .. "*." .. "vmt", "GAME"), true) do
+	    local name = string.StripExtension(ffile)
 
-    if file.Exists(dir .. dpath .. ".vtf", "GAME") then
-        TTC.Textures[name] = { path .. dpath }
-        if file.Exists(dir .. npath .. ".vtf", "GAME") then
-            TTC.Textures[name][2] = path .. npath
-        end
-    end
+	    local dpath = name .. "_d"
+	    local npath = name .. "_n"
+
+	    if file.Exists(dir .. dpath .. ".vtf", "GAME") then
+	        TTC.Textures[name] = { path .. dpath }
+
+	        TTC.Textures[name].legacy = paths.legacy
+
+	        if file.Exists(dir .. npath .. ".vtf", "GAME") then
+	            TTC.Textures[name][2] = path .. npath
+	        end
+	    end
+	end
 end
 
 
