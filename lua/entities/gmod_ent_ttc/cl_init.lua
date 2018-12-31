@@ -397,6 +397,8 @@ end
 
 -- TTC: ACF Damage Textures
 function ENT:RenderACFDamage()
+    if not self.ttc_mat then return false end
+    
     if not acf_support:GetBool() or not TTC.Shader["$detail"] then
         self.ttc_mat:SetFloat("$detailblendfactor", 0)
         return false
