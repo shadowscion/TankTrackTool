@@ -1,0 +1,6 @@
+"UnlitGeneric" 
+{	
+	"$basetexture"   "tanktrack_controller_new/track_generic_d"
+	"$bumpmap" "tanltrack_controller_new/track_generic_n"
+}
+
