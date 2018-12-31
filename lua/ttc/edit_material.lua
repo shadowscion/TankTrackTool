@@ -17,7 +17,7 @@ function MaterialProperty:ValueChanged(newval, bForce)
 
     BaseClass.ValueChanged(self, newval, bForce)
     self.StringValue = tostring(newval)
-    self.Material = Material("tanktrack_controller/" .. newval)
+    self.Material = Material("tanktrack_controller_new/" .. newval)
 end
 
 function MaterialProperty:Setup(vars)
@@ -105,8 +105,10 @@ function MaterialProperty:Setup(vars)
             mat_select:SetItemHeight(64)
 
         for name, v in pairs(TTC.Textures) do
+            if v.legacy then continue end
+
             local mat = vgui.Create("DImageButton", mat_select)
-                mat:SetOnViewMaterial("tanktrack_controller/" .. name, "models/wireframe")
+                mat:SetOnViewMaterial("tanktrack_controller_new/" .. name, "models/wireframe")
                 mat.AutoSize = false
                 mat.Value = name
                 mat:SetSize(mat_select.ItemWidth, mat_select.ItemHeight)
@@ -129,7 +131,7 @@ function MaterialProperty:Setup(vars)
     self.SetValue = function(self, val)
         __SetValue(self, val)
         self.StringValue = val
-        self.Material = Material("tanktrack_controller/" .. val)
+        self.Material = Material("tanktrack_controller_new/" .. val)
     end
 end
 
