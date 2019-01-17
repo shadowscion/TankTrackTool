@@ -70,7 +70,7 @@ function ENT:SetDefaults()
     -- appearance
     self:SetTTC_Detail(4)
     self:SetTTC_Color(Vector(1, 1, 1))
-    self:SetTTC_Material("track2")
+    self:SetTTC_Material("track_generic")
     self:SetTTC_FlipMat(false)
 
     -- dimensions
