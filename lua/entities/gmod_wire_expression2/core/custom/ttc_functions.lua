@@ -42,7 +42,6 @@ local function setTTCData(ent, func, keyvalue, new)
     end
 end
 
-
 __e2setcost(25)
 
 -- misc
@@ -52,12 +51,6 @@ e2function void entity:ttcSetDefaults()
 
     this:SetDefaults()
 end
-
-e2function array entity:ttcGetLinks()
-    if not isTTC(self, this) then return {} end
-    return this.LinkedEntities or {}
-end
-
 
 -- apperance
 e2function void entity:ttcSetDetail(number detail)
@@ -131,3 +124,76 @@ e2function void entity:ttcSetSlack(number type)
     if not isTTC(self, this) then return end
     setTTCData(this, "TTC_Type" , "ttc_type", type)
 end
+
+
+-- links
+__e2setcost(100)
+
+e2function array entity:ttcGetLinks()
+    if not isTTC(self, this) then return {} end
+    return this.LinkedEntities or {}
+end
+
+local antispam = {}
+
+e2function void entity:ttcSetEntities(entity chassis, array wheels, array rollers)
+	if not isTTC(self, this) then return end
+
+	if not IsValid(chassis) or not isOwner(self, chassis) or #wheels > 16 or #rollers > 16 then
+		return
+	end
+
+	local time = CurTime()
+	if antispam[this] and (antispam[this] == time or time - antispam[this] < 5) then
+		return
+	end
+	antispam[this] = time
+
+	local right = chassis:GetRight()
+	local pos = chassis:GetPos()
+	local dot = 0
+
+	local tbl = {}
+
+	for k, v in ipairs(wheels) do
+		if IsValid(v) and type(v) == "Entity" and isOwner(self, v) then
+			dot = dot + (right:Dot((v:GetPos() - pos):GetNormal()) > 0 and 1 or -1)
+			tbl[#tbl + 1] = v
+			v.Roller = nil
+		end
+	end
+
+	for k, v in ipairs(rollers) do
+		if IsValid(v) and type(v) == "Entity" and isOwner(self, v) then
+			dot = dot + (right:Dot((v:GetPos() - pos):GetNormal()) > 0 and 1 or -1)
+			tbl[#tbl + 1] = v
+			v.Roller = true
+		end
+	end
+
+	if math.abs(dot) ~= #tbl then
+		error("All linked wheels must be parallel to the chassis!")
+	end
+
+	local sort_pos = chassis:GetPos() + chassis:GetForward()*10000
+
+    table.sort(tbl, function(a, b)
+        local bool_this = a.Roller
+        local bool_that = b.Roller
+
+        if bool_this ~= bool_that then
+            return bool_that and not bool_this
+        end
+
+        if bool_this then
+            return a:GetPos():Distance(sort_pos) > b:GetPos():Distance(sort_pos)
+        else
+            return a:GetPos():Distance(sort_pos) < b:GetPos():Distance(sort_pos)
+        end
+    end)
+
+	table.insert(tbl, 1, chassis)
+
+	this:SetLinkedEntities(tbl)
+end
+
