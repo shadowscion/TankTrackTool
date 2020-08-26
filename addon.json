@@ -6,6 +6,10 @@
 	[
 		"*.psd",
 		"*.vcproj",
-		"*.svn*"
+		"*.svn*",
+		"*.git*",
+		"*.txt",
+		"*.sw.vtx",
+		"README.md"
 	]
 }
