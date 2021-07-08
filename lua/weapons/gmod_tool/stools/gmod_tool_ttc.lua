@@ -466,6 +466,8 @@ function TOOL.BuildCPanel(self)
     local pnl = vgui.Create("DForm")
     pnl:SetName("Auto Entity Settings")
 
+    local help = pnl:Help("This entity can be spawned from the Q menu")
+    help:SetTextColor(Color(255, 0, 0))
     local help = pnl:Help("Use the context menu (hold C and right click the controller) to configure!")
 
     pnl:CheckBox("Enable Particles", "ttc_autotread_enable_particles")

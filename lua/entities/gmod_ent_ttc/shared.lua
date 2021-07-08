@@ -4,10 +4,9 @@
 ]]--
 
 ENT.Base      = "base_anim"
-ENT.PrintName = "Tank Track Controller"
+ENT.PrintName = "TTC: Classic"
 ENT.Author    = "shadowscion"
 ENT.Category  = "Tank Track Tool"
-
 ENT.Editable  = true
 ENT.Spawnable = true
 ENT.AdminOnly = false

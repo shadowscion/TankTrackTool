@@ -2,6 +2,7 @@
 ENT.Type = "anim"
 ENT.Base = "base_wire_entity"
 ENT.Author = "shadowscion"
+ENT.PrintName = "TTC: Auto"
 ENT.Category = "Tank Track Tool"
 ENT.Spawnable = true
 ENT.AdminOnly = false
