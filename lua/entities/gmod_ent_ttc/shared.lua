@@ -6,7 +6,7 @@
 ENT.Base      = "base_anim"
 ENT.PrintName = "Tank Track Controller"
 ENT.Author    = "shadowscion"
-ENT.Category  = "Realism"
+ENT.Category  = "Tank Track Tool"
 
 ENT.Editable  = true
 ENT.Spawnable = true

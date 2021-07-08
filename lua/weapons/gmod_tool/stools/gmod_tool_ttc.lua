@@ -462,37 +462,31 @@ end
 
 -- TOOL: CPanel
 function TOOL.BuildCPanel(self)
-    self.Paint = function(pnl, w, h)
-        draw.RoundedBox(0, 0, 0, w, 20, Color(50, 50, 50, 255))
-        draw.RoundedBox(0, 1, 1, w - 2, 18, Color(125, 125, 125, 255))
-    end
 
-    self:AddControl("Header", {
-        Description = "Use the context menu (hold C and right click the controller) to configure!"
-    })
+    local pnl = vgui.Create("DForm")
+    pnl:SetName("Auto Entity Settings")
 
-    self:AddControl("Toggle", {
-        Label = "Enable HUD Selection Helpers",
-        Command = "ttc_hud_helpers",
-    })
+    local help = pnl:Help("Use the context menu (hold C and right click the controller) to configure!")
 
-    self:AddControl("Toggle", {
-        Label = "Enable HUD Entity Markers",
-        Command = "ttc_hud_markers",
-    })
+    pnl:CheckBox("Enable Particles", "ttc_autotread_enable_particles")
+    local cbox = pnl:CheckBox("Adaptive Detail", "ttc_autotread_adaptive_detail")
+    cbox:SetToolTip("Track vertex detail increases as movement speed increases")
+    pnl:NumSlider("Maximum Detail", "ttc_autotread_max_detail", 4, 16, 0)
 
-    self:AddControl("Toggle", {
-        Label = "Enable Damaged Track Textures",
-        Command = "ttc_render_damage",
-    })
+    self:AddPanel(pnl)
 
-    self:AddControl("Toggle", {
-        Label = "Disable Rendering",
-        Command = "ttc_block_all",
-    })
 
-    self:AddControl("Button", {
-        Label = "Refresh All",
-        Command = "ttc_refresh",
-    })
+    local pnl = vgui.Create("DForm")
+    pnl:SetName("Classic Entity Settings")
+
+    local help = pnl:Help("Use the context menu (hold C and right click the controller) to configure!")
+
+    pnl:CheckBox("Enable HUD Selection Helpers", "ttc_hud_helpers")
+    pnl:CheckBox("Enable HUD Entity Markers", "ttc_hud_markers")
+    pnl:CheckBox("Enable Damaged Track Textures", "ttc_render_damage")
+    pnl:CheckBox("Disable Rendering", "ttc_block_all")
+    pnl:Button("Refresh All", "ttc_refresh")
+
+    self:AddPanel(pnl)
+
 end
