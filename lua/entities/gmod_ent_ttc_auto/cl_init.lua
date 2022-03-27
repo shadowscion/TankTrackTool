@@ -619,17 +619,27 @@ function ENT:update_wheels(vehicleMode)
 
 	local pos_ri = basePos + bri
 	local vel_ri = _mvec_dot(bfo, self.ttc_wheels_lastpos_ri - pos_ri)
-	local rot_ri = (360*vel_ri)/radius
+	local rot_ri = 0
+	if self:GetNW2Bool("RightBrake", false) then
+		self.ttc_wheels_lastrot_ri = self.ttc_wheels_lastrot_ri or 0
+	else
+		rot_ri = (360*vel_ri)/radius
+		self.ttc_wheels_lastrot_ri = self.ttc_wheels_lastrot_ri - vel_ri/self.ttc_tracks_textureres
+	end
 	self.ttc_wheels_lastvel_ri = vel_ri
 	self.ttc_wheels_lastpos_ri = pos_ri
-	self.ttc_wheels_lastrot_ri = self.ttc_wheels_lastrot_ri - vel_ri/self.ttc_tracks_textureres
 
 	local pos_le = basePos - bri
 	local vel_le = _mvec_dot(bfo, self.ttc_wheels_lastpos_le - pos_le)
-	local rot_le = (360*vel_le)/radius
+	local rot_le = 0
+	if self:GetNW2Bool("LeftBrake", false) then
+		self.ttc_wheels_lastrot_le = self.ttc_wheels_lastrot_le or 0
+	else
+		rot_le = (360*vel_le)/radius
+		self.ttc_wheels_lastrot_le = self.ttc_wheels_lastrot_le - vel_le/self.ttc_tracks_textureres
+	end
 	self.ttc_wheels_lastvel_le = vel_le
 	self.ttc_wheels_lastpos_le = pos_le
-	self.ttc_wheels_lastrot_le = self.ttc_wheels_lastrot_le - vel_le/self.ttc_tracks_textureres
 
 	local wheel_yaw
 	if enableTurning[vehicleMode] then

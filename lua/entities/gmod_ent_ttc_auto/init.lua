@@ -19,11 +19,13 @@ function ENT:Initialize()
         phys:Wake()
     end
 
-    self.Inputs = Wire_CreateInputs(self, {"WheelYaw", "SuspensionBias", "SuspensionBiasSide", "ForwardFacingEntity [ENTITY]"})
+    self.Inputs = Wire_CreateInputs(self, {"LeftBrake","RightBrake","WheelYaw", "SuspensionBias", "SuspensionBiasSide", "ForwardFacingEntity [ENTITY]"})
 
+    self:SetNW2Bool("LeftBrake", false)
+    self:SetNW2Bool("RightBrake", false)
     self:SetNW2Int("WheelYaw", 0)
-    self:GetNW2Int("Hydra", 0)
-    self:GetNW2Int("HydraSide", 0)
+    self:SetNW2Int("Hydra", 0)
+    self:SetNW2Int("HydraSide", 0)
     self:SetNW2Entity("ForwardEnt", nil)
 end
 
@@ -41,6 +43,12 @@ local inputTriggers = {
     end,
     SuspensionBiasSide = function(self, iname, ivalue)
         self:SetNW2Float("HydraSide", math.Clamp(tonumber(ivalue) or 0, -1, 1))
+    end,
+    LeftBrake = function(self, iname, ivalue)
+        self:SetNW2Bool("LeftBrake", tobool(ivalue))
+    end,
+    RightBrake = function(self, iname, ivalue)
+        self:SetNW2Bool("RightBrake", tobool(ivalue))
     end,
 }
 
