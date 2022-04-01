@@ -203,6 +203,60 @@ function ENT:_ENW2V_SETUP()
 
 
 	----------------------------------------------------------------
+	category = "Front Compensator Wheel Setup"
+	hidepanel = {VehicleMode = {wheeled = true}}
+
+	local rowcolor = Color(255,225,200)
+
+	self:_ENW2V_REGISTER({notify = CLIENT,type = "Bool", name = "CompFWEnabled", default = false},
+		{hidepanel = hidepanel, category = category, title = "Enabled", rowcolor = rowcolor, help = "Enable extra wheel before first road wheel."})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompFWDiameter", min = 1, max = 200, default = 20},
+		{hidepanel = hidepanel, category = category, title = "Diameter", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompFWWidth", min = 1, max = 200, default = 10},
+		{hidepanel = hidepanel, category = category, title = "Width", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompFWOffsetX", min = 0, max = 1, default = 0.75},
+		{hidepanel = hidepanel, category = category, title = "X Offset", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompFWOffsetZ", min = 0, max = 1, default = 0.5},
+		{hidepanel = hidepanel, category = category, title = "Z Offset", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "String", name = "CompFWModel", default = "models/sprops/trans/miscwheels/tank15.mdl"},
+		{hidepanel = hidepanel, category = category, title = "Model", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "String", name = "CompFWBGroup"},
+		{hidepanel = hidepanel, category = category, title = "Bodygroup", help = "Each single-digit number in the string represents a separate bodygroup. Ex: 01004", rowcolor = rowcolor})
+
+
+	----------------------------------------------------------------
+	category = "Rear Compensator Wheel Setup"
+	hidepanel = {VehicleMode = {wheeled = true}}
+
+	self:_ENW2V_REGISTER({notify = CLIENT,type = "Bool", name = "CompRWEnabled", default = false},
+		{hidepanel = hidepanel, category = category, title = "Enabled", rowcolor = rowcolor, help = "Enable extra wheel after last road wheel."})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompRWDiameter", min = 1, max = 200, default = 20},
+		{hidepanel = hidepanel, category = category, title = "Diameter", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompRWWidth", min = 1, max = 200, default = 10},
+		{hidepanel = hidepanel, category = category, title = "Width", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompRWOffsetX", min = 0, max = 1, default = 0.75},
+		{hidepanel = hidepanel, category = category, title = "X Offset", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "Float", name = "CompRWOffsetZ", min = 0, max = 1, default = 0.5},
+		{hidepanel = hidepanel, category = category, title = "Z Offset", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "String", name = "CompRWModel", default = "models/sprops/trans/miscwheels/tank15.mdl"},
+		{hidepanel = hidepanel, category = category, title = "Model", rowcolor = rowcolor})
+
+	self:_ENW2V_REGISTER({notify = CLIENT, type = "String", name = "CompRWBGroup"},
+		{hidepanel = hidepanel, category = category, title = "Bodygroup", help = "Each single-digit number in the string represents a separate bodygroup. Ex: 01004", rowcolor = rowcolor})
+
+
+	----------------------------------------------------------------
 	category = "Idler Wheel Setup"
 	hidepanel = {VehicleMode = {wheeled = true}}
 

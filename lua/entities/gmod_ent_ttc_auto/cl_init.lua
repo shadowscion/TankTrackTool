@@ -345,7 +345,7 @@ local function setup_modelinfo(self, vehicleMode, ttc_wheels_info)
 	end
 
 	ttc_wheels_info[2] = {
-		name = "road",
+		name         = "road",
 		bodygroup    = self:GetRoadWBGroup(),
 		model        = self:GetRoadWModel(),
 		width        = self:GetRoadWWidth(),
@@ -355,6 +355,33 @@ local function setup_modelinfo(self, vehicleMode, ttc_wheels_info)
 		trace_start  = self.ttc_wheels_groundClearance,
 		trace_length = self.ttc_wheels_groundClearance*2,
 	}
+
+	if self:GetCompFWEnabled() then
+		ttc_wheels_info[5] = {
+			name         = "front compensator",
+			bodygroup    = self:GetCompFWBGroup(),
+			model        = self:GetCompFWModel(),
+			width        = self:GetCompFWWidth(),
+			radius       = self:GetCompFWDiameter()*0.5,
+			offsetx      = self:GetCompFWOffsetX(),
+			offsetz      = self:GetCompFWOffsetZ(),
+			trace_start  = self.ttc_wheels_groundClearance,
+			trace_length = self.ttc_wheels_groundClearance*2,
+		}
+	end
+	if self:GetCompRWEnabled() then
+		ttc_wheels_info[6] = {
+			name         = "rear compensator",
+			bodygroup    = self:GetCompRWBGroup(),
+			model        = self:GetCompRWModel(),
+			width        = self:GetCompRWWidth(),
+			radius       = self:GetCompRWDiameter()*0.5,
+			offsetx      = 1 - self:GetCompRWOffsetX(),
+			offsetz      = self:GetCompRWOffsetZ(),
+			trace_start  = self.ttc_wheels_groundClearance,
+			trace_length = self.ttc_wheels_groundClearance*2,
+		}
+	end
 
 	local ttc_csents_wheel = self.ttc_csents.wheel
 	for _, info in pairs(ttc_wheels_info) do
@@ -502,6 +529,36 @@ function ENT:setup_wheels(vehicleMode)
 		addwheel(self.ttc_wheels_le, {type = wtype, info = winfo, opp = 1, posL = pos + pos_le, posA = pos + pos_le, angL = Angle(0, 0, 0), angA = Angle(0, 0, 0)})
 	end
 
+	-- front compensator wheel
+	local wtype = 5
+	local winfo = ttc_wheels_info[wtype]
+
+	if winfo then
+		local add_i, add_n
+		if ttc_wheels_info[1] and ttc_wheels_info[3] then
+			add_i = 1
+			add_n = 1
+		elseif ttc_wheels_info[1] then
+			add_i = 1
+			add_n = 0
+		elseif ttc_wheels_info[3] then
+			add_i = 0
+			add_n = 0
+		else
+			add_i = 0
+			add_n = -1
+		end
+
+		local num_road = self:GetRoadWCount()
+		local t0 = (0 + add_i)/(num_road + add_n)
+		local t1 = (0 + add_i + 1)/(num_road + add_n)
+		local pos = Vector(wheelbase*0.5 - wheelbase*(t0 - winfo.offsetx*(t1 - t0)) - wheelbasemove, 0, winfo.trace_start + winfo.offsetz*winfo.trace_start)
+
+		addwheel(self.ttc_wheels_ri, {trace = true, type = wtype, info = winfo, opp = 1, posL = pos + pos_ri, posA = pos + pos_ri, angL = Angle(0, alt and 0 or 180, 0), angA = Angle(0, alt and 0 or 180, 0)})
+		addwheel(self.ttc_wheels_le, {trace = true, type = wtype, info = winfo, opp = 1, posL = pos + pos_le, posA = pos + pos_le, angL = Angle(0, alt and 180 or 0, 0), angA = Angle(0, alt and 180 or 0, 0)})
+		wheeltracecount = wheeltracecount + 1
+	end
+
 	-- road wheel
 	local wtype = 2
 	local winfo = ttc_wheels_info[wtype]
@@ -545,6 +602,7 @@ function ENT:setup_wheels(vehicleMode)
 			elseif winfo.type == "interleave" then
 				local even = num_road % 2 == 0 and 0 or 1
 				alt = i % 2 == even and true or false
+
 			end
 
 			local opp = alt and -1 or 1
@@ -553,6 +611,36 @@ function ENT:setup_wheels(vehicleMode)
 			addwheel(self.ttc_wheels_le, {trace = true, turn = turn, type = wtype, info = winfo, alt = alt, opp = opp, posL = pos + pos_le, posA = pos + pos_le, angL = Angle(0, alt and 180 or 0, 0), angA = Angle(0, alt and 180 or 0, 0)})
 			wheeltracecount = wheeltracecount + 1
 		end
+	end
+
+	-- rear compensator wheel
+	local wtype = 6
+	local winfo = ttc_wheels_info[wtype]
+
+	if winfo then
+		local add_i, add_n
+		if ttc_wheels_info[1] and ttc_wheels_info[3] then
+			add_i = 1
+			add_n = 1
+		elseif ttc_wheels_info[1] then
+			add_i = 1
+			add_n = 0
+		elseif ttc_wheels_info[3] then
+			add_i = 0
+			add_n = 0
+		else
+			add_i = 0
+			add_n = -1
+		end
+
+		local num_road = self:GetRoadWCount()
+		local t0 = (num_road + add_i)/(num_road + add_n)
+		local t1 = (num_road + add_i + 1)/(num_road + add_n)
+		local pos = Vector(wheelbase*0.5 - wheelbase*(t0 - winfo.offsetx*(t1 - t0)) - wheelbasemove, 0, winfo.trace_start + winfo.offsetz*winfo.trace_start)
+
+		addwheel(self.ttc_wheels_ri, {trace = true, type = wtype, info = winfo, opp = 1, posL = pos + pos_ri, posA = pos + pos_ri, angL = Angle(0, alt and 0 or 180, 0), angA = Angle(0, alt and 0 or 180, 0)})
+		addwheel(self.ttc_wheels_le, {trace = true, type = wtype, info = winfo, opp = 1, posL = pos + pos_le, posA = pos + pos_le, angL = Angle(0, alt and 180 or 0, 0), angA = Angle(0, alt and 180 or 0, 0)})
+		wheeltracecount = wheeltracecount + 1
 	end
 
 	-- idler wheel
