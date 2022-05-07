@@ -19,8 +19,10 @@ function ENT:Initialize()
         phys:Wake()
     end
 
-    self.Inputs = Wire_CreateInputs(self, {"LeftBrake","RightBrake","WheelYaw", "SuspensionBias", "SuspensionBiasSide", "ForwardFacingEntity [ENTITY]"})
+    self.Inputs = Wire_CreateInputs(self, {"LeftOverride","RightOverride","LeftBrake","RightBrake","WheelYaw", "SuspensionBias", "SuspensionBiasSide", "ForwardFacingEntity [ENTITY]"})
 
+    self:SetNW2Float("LeftGo", 0)
+    self:SetNW2Float("RightGo", 0)
     self:SetNW2Bool("LeftBrake", false)
     self:SetNW2Bool("RightBrake", false)
     self:SetNW2Int("WheelYaw", 0)
@@ -50,6 +52,12 @@ local inputTriggers = {
     RightBrake = function(self, iname, ivalue)
         self:SetNW2Bool("RightBrake", tobool(ivalue))
     end,
+    LeftOverride = function(self, iname, ivalue)
+        self:SetNW2Float("LeftGo", math.Clamp(tonumber(ivalue) or 0, -math.pi, math.pi))
+    end,
+    RightOverride = function(self, iname, ivalue)
+        self:SetNW2Float("RightGo", math.Clamp(tonumber(ivalue) or 0, -math.pi, math.pi))
+    end,
 }
 
 function ENT:TriggerInput(iname, ivalue)
@@ -66,4 +74,5 @@ function ENT:PostEntityPaste(pl, ent, allents)
     if mods then
         self:_ENW2V_RESTORE(mods)
     end
+    self.BaseClass.PostEntityPaste(self, pl, ent, allents)
 end

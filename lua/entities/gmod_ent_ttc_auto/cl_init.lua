@@ -711,6 +711,10 @@ function ENT:update_wheels(vehicleMode)
 	if self:GetNW2Bool("RightBrake", false) then
 		self.ttc_wheels_lastrot_ri = self.ttc_wheels_lastrot_ri or 0
 	else
+		local override = self:GetNW2Float("RightGo", 0)
+		if override ~= 0 then
+			vel_ri = override
+		end
 		rot_ri = (360*vel_ri)/radius
 		self.ttc_wheels_lastrot_ri = self.ttc_wheels_lastrot_ri - vel_ri/self.ttc_tracks_textureres
 	end
@@ -723,6 +727,10 @@ function ENT:update_wheels(vehicleMode)
 	if self:GetNW2Bool("LeftBrake", false) then
 		self.ttc_wheels_lastrot_le = self.ttc_wheels_lastrot_le or 0
 	else
+		local override = self:GetNW2Float("LeftGo", 0)
+		if override ~= 0 then
+			vel_le = override
+		end
 		rot_le = (360*vel_le)/radius
 		self.ttc_wheels_lastrot_le = self.ttc_wheels_lastrot_le - vel_le/self.ttc_tracks_textureres
 	end
