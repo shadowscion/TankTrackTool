@@ -137,9 +137,9 @@ local function RenderTracks(self, ply, eyepos, eyedir)
 end
 
 --local skybox
---hook.Add("PreDrawSkyBox", "tanktracks_legacy", function()  end)
+--hook.Add("PreDrawSkyBox", "tanktracks_legacy", function() skybox = true end)
 
-hook.Add("PostDrawOpaqueRenderables", "tanktracks_legacy", function()
+hook.Add("PreDrawOpaqueRenderables", "tanktracks_legacy", function(bDrawingDepth, bDrawingSkybox, isDraw3DSkybox)
 	if ttlib.RenderDisable then return end
 
 	if FrameTime() == 0 or gui.IsConsoleVisible() or next(RenderOverride) == nil then
@@ -154,6 +154,7 @@ hook.Add("PostDrawOpaqueRenderables", "tanktracks_legacy", function()
 		RenderTracks(controller, ply, eyepos, eyedir)
 	end
 end)
+
 
 
 function ENT:ttfunc_reset()
