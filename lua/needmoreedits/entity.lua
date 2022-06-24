@@ -55,13 +55,13 @@ if SERVER then
 		precopy = nil
 	end
 
-	function ENT:OnDuplicated()
-		local dupe = self.EntityMods and self.EntityMods.nmeDupeInfo
-		if dupe and dupe.data then
-			self:RestoreNME(true, util.JSONToTable(util.Decompress(dupe.data)))
+	function ENT:OnDuplicated(dupe)
+		local info = dupe.EntityMods and dupe.EntityMods.nmeDupeInfo
+		if info and info.data then
+			self:RestoreNME(false, util.JSONToTable(util.Decompress(info.data)))
 		end
 		if isfunction(self.PostDuplicatedNME) then
-			self:PostDuplicatedNME()
+			self:PostDuplicatedNME(dupe)
 		end
 	end
 end

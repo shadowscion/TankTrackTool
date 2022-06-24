@@ -87,7 +87,7 @@ local function a1z26_toTable(str, int)
 end
 
 local function convert(ent, legacy)
-	local update = true
+	local update = false--not game.SinglePlayer()
 
 	ent:SetValueNME(update, "suspensionType", nil, "classic")
 

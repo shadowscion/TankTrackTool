@@ -380,6 +380,30 @@ function PANEL:Think()
 	end
 end
 
+/*
+concommand.Add("needmoreedits", function(cmd, ply, args)
+
+	local ent, name, value, instance = unpack(args)
+
+	if not ent or not name or not value then return end
+
+	if tonumber(value) then value = tonumber(value) end
+
+	local update = {}
+	if instance then
+		if not tonumber(instance) then return end
+		update[name][instance] = value
+	else
+		update[name] = value
+	end
+
+	net.Start("NMEEdit")
+	net.WriteUInt(tonumber(ent), 32)
+	net.WriteTable(update)
+	net.SendToServer()
+
+end)
+*/
 
 //
 function PANEL:SetupCallbacks(variables, vnode, vtable)

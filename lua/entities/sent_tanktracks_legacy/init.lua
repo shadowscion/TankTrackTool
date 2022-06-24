@@ -184,7 +184,7 @@ duplicator.RegisterEntityClass("gmod_ent_ttc", function(ply, data)
 
 	local legacy = data.DT
 	if legacy then
-		local update = true
+		local update = false--not game.SinglePlayer()
 
 		local color = isvector(legacy.TTC_Color) and legacy.TTC_Color or Vector(1, 1, 1)
 		ent:SetValueNME(update, "trackColor", nil, string.format("%d %d %d 255", color.x*255, color.y*255, color.z*255))
