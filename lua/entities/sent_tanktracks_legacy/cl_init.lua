@@ -55,25 +55,25 @@ ttlib_RenderOverride = ttlib_RenderOverride or {}
 local RenderOverride = ttlib_RenderOverride
 
 local function real_radius(ent)
-    if ent:GetHitBoxBounds(0, 0) then
-        local min, max = ent:GetHitBoxBounds(0, 0)
-        local bounds = (max - min)*0.5
-        return math.max(bounds.x, bounds.y, bounds.z)
-    end
-    return ent:GetModelRadius() or 12
+	if ent:GetHitBoxBounds(0, 0) then
+		local min, max = ent:GetHitBoxBounds(0, 0)
+		local bounds = (max - min)*0.5
+		return math.max(bounds.x, bounds.y, bounds.z)
+	end
+	return ent:GetModelRadius() or 12
 end
 
 local function GetAngularVelocity(ent, pos, ang)
-    local dir = WorldToLocal(ent:GetForward() + pos, ang, pos, ang)
-    local ang = math.deg(math.atan2(dir.z, dir.x))
+	local dir = WorldToLocal(ent:GetForward() + pos, ang, pos, ang)
+	local ang = math.deg(math.atan2(dir.z, dir.x))
 
-    ent.m_DeltaAngle = ent.m_DeltaAngle or 0
+	ent.m_DeltaAngle = ent.m_DeltaAngle or 0
 
-    local ang_vel = (ang - ent.m_DeltaAngle + 180) % 360 - 180
+	local ang_vel = (ang - ent.m_DeltaAngle + 180) % 360 - 180
 
-    ent.m_DeltaAngle = ang
+	ent.m_DeltaAngle = ang
 
-    return ang_vel--/FrameTime()
+	return ang_vel--/FrameTime()
 end
 
 local function UpdateTracks(self, pos, ang)
@@ -81,7 +81,6 @@ local function UpdateTracks(self, pos, ang)
 	if not parts then return end
 
     local sprocket = self.ttdata_sprocket
-    local groundfx = self.ttdata_dogroundfx
 
 	for i = 1, #parts do
 		local wheel = parts[i][1]
@@ -103,10 +102,10 @@ local function UpdateTracks(self, pos, ang)
 
 	ttlib.tracks_think(self)
 
-	return true
+	return self.ttdata_tracks_ready
 end
 
-local function RenderTracks(self, ply, eyepos, eyedir)
+local function RenderTracks(self, eyepos, eyedir)
 	if not IsValid(self) then
 		RenderOverride[self] = nil
 		return
@@ -136,31 +135,50 @@ local function RenderTracks(self, ply, eyepos, eyedir)
    	end
 end
 
---local skybox
---hook.Add("PreDrawSkyBox", "tanktracks_legacy", function() skybox = true end)
+local disable
+local empty = ClientsideModel("models/props_c17/oildrum001_explosive.mdl")
+empty:SetNoDraw(true)
 
-hook.Add("PreDrawOpaqueRenderables", "tanktracks_legacy", function(bDrawingDepth, bDrawingSkybox, isDraw3DSkybox)
-	if ttlib.RenderDisable then return end
-
-	if FrameTime() == 0 or gui.IsConsoleVisible() or next(RenderOverride) == nil then
+hook.Add("PostDrawOpaqueRenderables", "tanktracks_legacy", function(bDrawingDepth, bDrawingSkybox, isDraw3DSkybox)
+	if ttlib.RenderDisable or FrameTime() == 0 or gui.IsConsoleVisible() or next(RenderOverride) == nil then
 		return
 	end
 
-	local ply = LocalPlayer()
-	local eyepos = EyePos()
-	local eyedir = EyeVector()
+	if IsValid(empty) then
+		empty:DrawModel()
+	else
+		empty = ClientsideModel("models/props_c17/oildrum001_explosive.mdl")
+		empty:SetNoDraw(true)
+	end
+
+	eyepos = EyePos()
+	eyedir = EyeVector()
 
 	for controller in pairs(RenderOverride) do
-		RenderTracks(controller, ply, eyepos, eyedir)
+		RenderTracks(controller, eyepos, eyedir)
 	end
 end)
 
 
+//
+function ENT:OnRemove()
+	self.ttdata_reset = true
+
+	local prev = RenderOverride[self]
+	RenderOverride[self] = nil
+
+	timer.Simple(0, function()
+		if (self and self:IsValid()) then
+			RenderOverride[self] = prev
+			return
+		end
+	end)
+end
 
 function ENT:ttfunc_reset()
-	if not self.ttdata_links then return end
-
 	RenderOverride[self] = nil
+
+	if not self.ttdata_links then return end
 
 	self.ttdata_chassis = self.ttdata_links[1]
 	if not IsValid(self.ttdata_chassis) then
@@ -203,25 +221,24 @@ function ENT:ttfunc_reset()
 		end
 	end
 
-	if #self.ttdata_parts == 0 then return end
+	if #self.ttdata_parts == 0 then
+		return
+	end
 
-	--if values.rollderRadius ~= 0 or values.wheelRadius ~= 0 then
-		local rollercount = 0
-		for i = 1, #self.ttdata_parts do
-			local node_this = self.ttdata_parts[i][1]
-			local node_next = self.ttdata_parts[i == #self.ttdata_parts and 1 or i + 1][1]
+	local rollercount = 0
+	for i = 1, #self.ttdata_parts do
+		local node_this = self.ttdata_parts[i][1]
+		local node_next = self.ttdata_parts[i == #self.ttdata_parts and 1 or i + 1][1]
 
-			node_this.radius = node_this.radius + (rollercount > 0 and values.rollerRadius or values.wheelRadius) - values.trackHeight*0.5
+		node_this.radius = node_this.radius + (rollercount > 0 and values.rollerRadius or values.wheelRadius) - values.trackHeight*0.5
 
-			local dir_next = node_next[1] - node_this[1]
-			if dir_next.x >= 0 then
-				rollercount = rollercount + 1
-			end
+		local dir_next = node_next[1] - node_this[1]
+		if dir_next.x >= 0 then
+			rollercount = rollercount + 1
 		end
-		self.ttdata_rollercount = rollercount
-	--end
+	end
+	self.ttdata_rollercount = rollercount
 
-	self.ttdata_dogroundfx = values.systemEffScale ~= 0 and values.systemEffScale
 	self.ttdata_trackoffset = self.ttdata_parts[1][1][1].y + (self.ttdata_trackvalues.trackFlip ~= 0 and -1 or 1)*values.trackOffsetY
 
 	self.ttdata_sprocket = math.Clamp(values.wheelSprocket, 1, #self.ttdata_parts)
@@ -235,3 +252,64 @@ function ENT:ttfunc_reset()
 
 	RenderOverride[self] = true
 end
+
+
+
+
+
+
+
+
+
+
+
+
+--[[
+local function CreateCSENT(self)
+	if not IsValid(RenderOverride[self]) then
+		RenderOverride[self] = ents.CreateClientside("base_anim")
+		RenderOverride[self]:SetModel("models/hunter/plates/plate.mdl")
+		RenderOverride[self]:Spawn()
+		RenderOverride[self]:Activate()
+	end
+
+	RenderOverride[self]:SetNoDraw(false)
+	RenderOverride[self]:DrawShadow(false)
+	RenderOverride[self]:SetPos(self.ttdata_chassis:GetPos())
+	RenderOverride[self]:SetAngles(self.ttdata_chassis:GetAngles())
+	RenderOverride[self]:SetParent(self.ttdata_chassis)
+
+	RenderOverride[self].Think = function(e)
+
+		if not e.isvisible then return end
+
+		if not IsValid(self) then e:Remove() return end
+
+		e.isvisible = nil
+
+		self.ttdata_matrix = self.ttdata_chassis:GetWorldTransformMatrix()
+		if self.ttdata_rotate then
+			self.ttdata_matrix:Rotate(self.ttdata_rotate)
+		end
+
+		local pos, ang = self.ttdata_matrix:GetTranslation(), self.ttdata_matrix:GetAngles()
+
+		UpdateTracks(self, pos, ang)
+
+	end
+	RenderOverride[self].Draw = function(e)
+		if ttlib.RenderDisable or not IsValid(self) then return end
+
+		if FrameTime() == 0 or gui.IsConsoleVisible() then
+			return
+		end
+
+		e.isvisible = true
+
+		e:DrawModel()
+
+		ttlib.tracks_render(self)
+
+	end
+end
+]]
