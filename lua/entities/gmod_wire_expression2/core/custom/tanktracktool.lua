@@ -42,6 +42,8 @@ local function makeEntity(self, class, keep, pos, ang, model)
 		ent:CallOnRemove("e2_ttrmv", function(e)
 			self.data.spawnedProps[e] = nil
 		end)
+
+		ent.DoNotDuplicate = true
 	else
 		undo.Create(class)
 			undo.SetPlayer(self.player)
@@ -55,7 +57,7 @@ local function makeEntity(self, class, keep, pos, ang, model)
 	return ent
 end
 
-__e2setcost(25)
+__e2setcost(100)
 
 e2function entity tanktracksCreateAuto(number keep, string model, vector pos, angle ang)
 	return makeEntity(self, "sent_tanktracks_auto", keep ~= 0, pos, Angle(ang[1], ang[2], ang[3]), model)
