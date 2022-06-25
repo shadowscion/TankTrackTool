@@ -385,7 +385,6 @@ net.Receive("tanktracktool_hud", function()
 end)
 
 function TOOL:DrawHUD()
-
 	local trace = LocalPlayer():GetEyeTrace()
 	if not trace.Hit or LocalPlayer():InVehicle() then return end
 
@@ -393,7 +392,6 @@ function TOOL:DrawHUD()
 
 	// always show this, to avoid any confusion of how wheels should be set up
 	if IsValid(Chassis) and IsValid(Controller) then
-
 		local xlen
 		local ylen
 
@@ -433,7 +431,7 @@ function TOOL:DrawHUD()
 	end
 
 	// disable if hud helpers are disabled
-	if self:GetClientInfo("markers") ~= 0 then
+	if tobool(self:GetClientInfo("markers")) then
 		if IsValid(Controller) then
 			local pos = Controller:GetPos():ToScreen()
 			draw.SimpleTextOutlined("Controller (" .. Controller:EntIndex() .. ")", "Trebuchet18", pos.x, pos.y, Color(255, 255, 255), 0, 0, 1, Color(0, 0, 0, 255))
@@ -514,7 +512,6 @@ end
 
 // TOOL: CPanel
 function TOOL.BuildCPanel(self)
-
 	local cooldown = SysTime()
 
 	local pnl = vgui.Create("DForm")
@@ -584,5 +581,4 @@ function TOOL.BuildCPanel(self)
 	pnl:CheckBox("Enable HUD Selection Helpers", "tanktracktool_markers")
 
 	self:AddPanel(pnl)
-
 end
