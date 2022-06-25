@@ -3,7 +3,7 @@
 include("shared.lua")
 
 ENT.NMEIcon = "tanktracktool/icons/editor.png"
-ENT.NMEWiki = "https://github.com/shadowscion/TankTrackTool"
+ENT.NMEWiki = "https://github.com/shadowscion/TankTrackTool/wiki"
 
 include("modes/classic.lua")
 include("modes/torsion.lua")

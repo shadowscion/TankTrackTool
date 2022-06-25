@@ -547,18 +547,18 @@ function TOOL.BuildCPanel(self)
 	mlist:DockPadding(0, 0, 0, 8)
 
 	local btn1 = vgui.Create("DImageButton", mlist)
-	btn1:SetImage("vgui/entities/sent_tanktracks_legacy")
+	btn1:SetImage("vgui/entities/sent_tanktracks_auto")
 	btn1:SetSize(64, 64)
 	btn1.DoClick = function()
-		RunConsoleCommand("gm_spawnsent", "sent_tanktracks_legacy")
+		RunConsoleCommand("gm_spawnsent", "sent_tanktracks_auto")
 		surface.PlaySound("ui/buttonclickrelease.wav")
 	end
 
 	local btn2 = vgui.Create("DImageButton", mlist)
-	btn2:SetImage("vgui/entities/sent_tanktracks_auto")
+	btn2:SetImage("vgui/entities/sent_tanktracks_legacy")
 	btn2:SetSize(64, 64)
 	btn2.DoClick = function()
-		RunConsoleCommand("gm_spawnsent", "sent_tanktracks_auto")
+		RunConsoleCommand("gm_spawnsent", "sent_tanktracks_legacy")
 		surface.PlaySound("ui/buttonclickrelease.wav")
 	end
 

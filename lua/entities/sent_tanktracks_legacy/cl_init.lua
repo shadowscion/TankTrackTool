@@ -3,9 +3,7 @@
 include("shared.lua")
 
 ENT.NMEIcon = "tanktracktool/icons/editor.png"
-ENT.NMEWiki = "https://github.com/shadowscion/TankTrackTool"
-
-local disable = GetConVar("tanktracktool_disable")
+ENT.NMEWiki = "https://github.com/shadowscion/TankTrackTool/wiki"
 
 
 //
