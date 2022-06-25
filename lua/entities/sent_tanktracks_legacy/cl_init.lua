@@ -230,7 +230,7 @@ function ENT:ttfunc_reset()
 		local node_this = self.ttdata_parts[i][1]
 		local node_next = self.ttdata_parts[i == #self.ttdata_parts and 1 or i + 1][1]
 
-		node_this.radius = node_this.radius + (rollercount > 0 and values.rollerRadius or values.wheelRadius) - values.trackHeight*0.5
+		node_this.radius = node_this.radius + (rollercount > 0 and values.rollerRadius or values.wheelRadius) -- values.trackHeight
 
 		local dir_next = node_next[1] - node_this[1]
 		if dir_next.x >= 0 then

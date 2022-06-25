@@ -94,7 +94,7 @@ tankTrackVars:Var("trackColor", "Color", {def = "", title = "color"})
 
 tankTrackVars:Var("trackMaterial", "Combo", {def = "generic", title = "material"})
 
-tankTrackVars:Var("trackRes", "Int", {min = 2, max = 8, def = 2, title = "resolution"})
+tankTrackVars:Var("trackRes", "Int", {min = 1, max = 8, def = 2, title = "resolution"})
 
 
 tankTrackVars:SubCategory("shape")

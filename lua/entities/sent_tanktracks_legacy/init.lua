@@ -191,7 +191,7 @@ duplicator.RegisterEntityClass("gmod_ent_ttc", function(ply, data)
 		ent:SetValueNME(update, "trackMaterial", nil, GetMaterial(legacy.TTC_Material))
 
 		ent:SetValueNME(update, "trackTension", nil, legacy.TTC_Tension)
-		ent:SetValueNME(update, "trackHeight", nil, legacy.TTC_Height)
+		ent:SetValueNME(update, "trackHeight", nil, (legacy.TTC_Height or 3)*0.5)
 		ent:SetValueNME(update, "trackWidth", nil, legacy.TTC_Width)
 		ent:SetValueNME(update, "trackOffsetY", nil, legacy.TTC_Offset)
 
