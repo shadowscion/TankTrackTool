@@ -51,9 +51,9 @@ tankTrackVars:Category("Wheels")
 
 tankTrackVars:Var("wheelSprocket", "Int", {min = 1, max = 250, def = 1,  title = "sprocket id", help = "controls which wheel scrolls the tracks"})
 
-tankTrackVars:Var("wheelRadius", "Float", {min = -2, max = 12, def = 0, title = "offset wheel radius"})
+tankTrackVars:Var("wheelRadius", "Float", {min = -250, max = 250, def = 0, title = "offset wheel radius"})
 
-tankTrackVars:Var("rollerRadius", "Float", {min = -2, max = 12, def = 0, title = "offset roller radius"})
+tankTrackVars:Var("rollerRadius", "Float", {min = -250, max = 250, def = 0, title = "offset roller radius"})
 
 
 if CLIENT then

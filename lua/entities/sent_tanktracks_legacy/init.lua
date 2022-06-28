@@ -191,14 +191,22 @@ duplicator.RegisterEntityClass("gmod_ent_ttc", function(ply, data)
 		ent:SetValueNME(update, "trackMaterial", nil, GetMaterial(legacy.TTC_Material))
 
 		ent:SetValueNME(update, "trackTension", nil, legacy.TTC_Tension)
-		ent:SetValueNME(update, "trackHeight", nil, (legacy.TTC_Height or 3)*0.5)
+
 		ent:SetValueNME(update, "trackWidth", nil, legacy.TTC_Width)
 		ent:SetValueNME(update, "trackOffsetY", nil, legacy.TTC_Offset)
-
 		ent:SetValueNME(update, "wheelSprocket", nil, legacy.TTC_Sprocket or 1)
 
 		ent:SetValueNME(update, "wheelRadius", nil, legacy.TTC_Radius)
 		ent:SetValueNME(update, "rollerRadius", nil, legacy.TTC_RollerRadius)
+
+		local height = (legacy.TTC_Height or 3)*0.5 + 0.5
+		ent:SetValueNME(update, "trackHeight", nil, height)
+
+		local offset = legacy.TTC_Radius or 0
+		ent:SetValueNME(update, "wheelRadius", nil, offset - height*0.5)
+
+		local offset = legacy.TTC_RollerRadius or 0
+		ent:SetValueNME(update, "rollerRadius", nil, offset - height*0.5)
 	end
 
 	ply:AddCount("sent_tanktracks_legacy", ent)
