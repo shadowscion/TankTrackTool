@@ -78,7 +78,7 @@ local function UpdateTracks(self, pos, ang)
 	local parts = self.ttdata_parts
 	if not parts then return end
 
-    local sprocket = self.ttdata_sprocket
+	local sprocket = self.ttdata_sprocket
 
 	for i = 1, #parts do
 		local wheel = parts[i][1]
@@ -103,6 +103,10 @@ local function UpdateTracks(self, pos, ang)
 	return self.ttdata_tracks_ready
 end
 
+local disable
+local empty = ClientsideModel("models/props_c17/oildrum001_explosive.mdl")
+empty:SetNoDraw(true)
+
 local function RenderTracks(self, eyepos, eyedir)
 	if not IsValid(self) then
 		RenderOverride[self] = nil
@@ -125,26 +129,29 @@ local function RenderTracks(self, eyepos, eyedir)
 
 	local pos, ang = self.ttdata_matrix:GetTranslation(), self.ttdata_matrix:GetAngles()
 
-    local dot = eyedir:Dot(pos - eyepos)
-    if dot < 0 and math.abs(dot) > 100 then return end
+	local dot = eyedir:Dot(pos - eyepos)
+	if dot < 0 and math.abs(dot) > 100 then return end
 
-    if UpdateTracks(self, pos, ang) then
-    	ttlib.tracks_render(self)
-   	end
+	if UpdateTracks(self, pos, ang) then
+		-- ???
+		-- for some reason, this fixes the lighting for meshes
+		render.SetBlend(0)
+		empty:SetPos(pos)
+		empty:SetAngles(ang)
+		empty:SetupBones()
+		empty:DrawModel()
+		render.SetBlend(1)
+
+		ttlib.tracks_render(self)
+	end
 end
-
-local disable
-local empty = ClientsideModel("models/props_c17/oildrum001_explosive.mdl")
-empty:SetNoDraw(true)
 
 hook.Add("PostDrawOpaqueRenderables", "tanktracks_legacy", function(bDrawingDepth, bDrawingSkybox, isDraw3DSkybox)
 	if ttlib.RenderDisable or FrameTime() == 0 or gui.IsConsoleVisible() or next(RenderOverride) == nil then
 		return
 	end
 
-	if IsValid(empty) then
-		empty:DrawModel()
-	else
+	if not IsValid(empty) then
 		empty = ClientsideModel("models/props_c17/oildrum001_explosive.mdl")
 		empty:SetNoDraw(true)
 	end

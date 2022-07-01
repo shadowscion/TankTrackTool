@@ -987,8 +987,10 @@ function SetupCombo(self, vnode, vtable, variables)
 	end
 
 	local optionID = {}
+	local optionIcons = vtable.edit.icons
+
 	for k, v in SortedPairsByValue(vtable.edit.values) do
-		local ID = control:AddChoice(k, nil, false, "icon16/bullet_white.png")
+		local ID = control:AddChoice(k, nil, false, optionIcons and optionIcons[k] or "icon16/bullet_white.png")
 		optionID[k] = ID
 
 		control:AddSpacer()
