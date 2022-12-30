@@ -9,10 +9,10 @@ ENT.Category = "TankTrackTool"
 ENT.Spawnable = true
 ENT.AdminOnly = false
 
-local pbc_vars = NeedMoreEdits.New()
+local tte_vars = NeedMoreEdits.New()
 
 function ENT:SetupNME()
-    return pbc_vars
+    return tte_vars
 end
 
 function ENT:DefaultNME( update )
@@ -47,42 +47,42 @@ function ENT:DefaultNME( update )
 end
 
 
-pbc_vars:Category( "Setup" )
-pbc_vars:Var( "pointCount", "Int", { min = 2, max = 20, def = 5, title = "point count" } )
-pbc_vars:Var( "pointSpread", "Float", { min = 0, max = 64, def = 1, title = "randomize point spread" } )
-pbc_vars:Var( "pointStutter", "Float", { min = 0, max = 1, def = 0, title = "randomize point missfire" } )
-pbc_vars:Var( "pointMulti", "Int", { min = 1, max = 4, def = 1, title = "beam count" } )
-pbc_vars:Var( "pointDelay", "Float", { min = 0, max = 1, def = 0, title = "beam velocity delay" } )
-pbc_vars:Var( "pointSag", "Float", { min = 0, max = 1, def = 0, title = "beam sag percent" } )
-pbc_vars:Var( "pointTrace", "Bool", { def = 0, title = "enable beam intersection" } )
+tte_vars:Category( "Setup" )
+tte_vars:Var( "pointCount", "Int", { min = 2, max = 20, def = 5, title = "point count" } )
+tte_vars:Var( "pointSpread", "Float", { min = 0, max = 64, def = 1, title = "randomize point spread" } )
+tte_vars:Var( "pointStutter", "Float", { min = 0, max = 1, def = 0, title = "randomize point missfire" } )
+tte_vars:Var( "pointMulti", "Int", { min = 1, max = 4, def = 1, title = "beam count" } )
+tte_vars:Var( "pointDelay", "Float", { min = 0, max = 1, def = 0, title = "beam velocity delay" } )
+tte_vars:Var( "pointSag", "Float", { min = 0, max = 1, def = 0, title = "beam sag percent" } )
+tte_vars:Var( "pointTrace", "Bool", { def = 0, title = "enable beam intersection" } )
 
 
-pbc_vars:Category( "source" )
-pbc_vars:Var( "sourceEnable", "Bool", { def = 1, title = "enabled" } )
-pbc_vars:Var( "sourceSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-pbc_vars:Var( "sourceColor1", "Color", { def = "", title = "inner color" } )
-pbc_vars:Var( "sourceSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-pbc_vars:Var( "sourceColor2", "Color", { def = "", title = "outer color" } )
+tte_vars:Category( "source" )
+tte_vars:Var( "sourceEnable", "Bool", { def = 1, title = "enabled" } )
+tte_vars:Var( "sourceSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+tte_vars:Var( "sourceColor1", "Color", { def = "", title = "inner color" } )
+tte_vars:Var( "sourceSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+tte_vars:Var( "sourceColor2", "Color", { def = "", title = "outer color" } )
 
 
-pbc_vars:Category( "Point" )
-pbc_vars:Var( "pointEnable", "Bool", { def = 1, title = "enabled" } )
-pbc_vars:Var( "pointSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-pbc_vars:Var( "pointColor1", "Color", { def = "", title = "inner color" } )
-pbc_vars:Var( "pointSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-pbc_vars:Var( "pointColor2", "Color", { def = "", title = "outer color" } )
+tte_vars:Category( "Point" )
+tte_vars:Var( "pointEnable", "Bool", { def = 1, title = "enabled" } )
+tte_vars:Var( "pointSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+tte_vars:Var( "pointColor1", "Color", { def = "", title = "inner color" } )
+tte_vars:Var( "pointSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+tte_vars:Var( "pointColor2", "Color", { def = "", title = "outer color" } )
 
 
-pbc_vars:Category( "Beam" )
-pbc_vars:Var( "beamEnable", "Bool", { def = 1, title = "enabled" } )
-pbc_vars:Var( "beamSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-pbc_vars:Var( "beamColor1", "Color", { def = "", title = "inner color" } )
-pbc_vars:Var( "beamSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-pbc_vars:Var( "beamColor2", "Color", { def = "", title = "outer color" } )
-pbc_vars:Var( "beamMaterial", "Combo", { def = "tripmine_laser", title = "material" } )
+tte_vars:Category( "Beam" )
+tte_vars:Var( "beamEnable", "Bool", { def = 1, title = "enabled" } )
+tte_vars:Var( "beamSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+tte_vars:Var( "beamColor1", "Color", { def = "", title = "inner color" } )
+tte_vars:Var( "beamSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+tte_vars:Var( "beamColor2", "Color", { def = "", title = "outer color" } )
+tte_vars:Var( "beamMaterial", "Combo", { def = "tripmine_laser", title = "material" } )
 
 
-local edit = pbc_vars:GetVar( "beamMaterial" ).edit
+local edit = tte_vars:GetVar( "beamMaterial" ).edit
 edit.values = {
     ["tripmine_laser"] = 1,
     ["trails/electric"] = 2,
@@ -92,14 +92,14 @@ edit.values = {
 }
 
 
-pbc_vars:Category( "particle" )
-pbc_vars:Var( "particleEnable", "Bool", { def = 1, title = "enabled" } )
-pbc_vars:Var( "particleSize1", "Float", { min = 0, max = 64, def = 12, title = "start size" } )
-pbc_vars:Var( "particleSize2", "Float", { min = 0, max = 64, def = 12, title = "end size" } )
-pbc_vars:Var( "particleColor", "Color", { def = "", title = "color" } )
-pbc_vars:Var( "particleMaterial", "Combo", { def = "effects/spark", title = "material" } )
+tte_vars:Category( "particle" )
+tte_vars:Var( "particleEnable", "Bool", { def = 1, title = "enabled" } )
+tte_vars:Var( "particleSize1", "Float", { min = 0, max = 64, def = 12, title = "start size" } )
+tte_vars:Var( "particleSize2", "Float", { min = 0, max = 64, def = 12, title = "end size" } )
+tte_vars:Var( "particleColor", "Color", { def = "", title = "color" } )
+tte_vars:Var( "particleMaterial", "Combo", { def = "effects/spark", title = "material" } )
 
-local edit = pbc_vars:GetVar( "particleMaterial" ).edit
+local edit = tte_vars:GetVar( "particleMaterial" ).edit
 edit.values = {
     ["effects/spark"] = 1,
 }
@@ -113,20 +113,11 @@ if CLIENT then
 
     local pi = math.pi
 
-    pbc_controllers = pbc_controllers or {}
+    local tte_controllers = tte_controllers
 
     local matbeam = Material( "tripmine_laser" )
     local matpoint = Material( "sprites/gmdm_pickups/light" )
 
-    hook.Add( "PostDrawTranslucentRenderables", "pbc_renderer", function()
-        if not next( pbc_controllers ) then return end
-
-        for k, v in pairs( pbc_controllers ) do
-            if v and IsValid( k ) then
-                k:pbc_render()
-            end
-        end
-    end )
 
 
     function ENT:TriggerNME(type, ...)
@@ -136,7 +127,7 @@ if CLIENT then
                 editor.DTree.RootNode:ExpandRecurse( true )
             end
         else
-            self.pbc_reset = true
+            self.tte_reset = true
         end
     end
 
@@ -198,42 +189,44 @@ if CLIENT then
 
 
     function ENT:Think()
-        if self.pbc_reset then
-            self.pbc_reset = nil
-            self:pbc_update()
+        self.BaseClass.Think( self )
+
+        if self.tte_reset then
+            self.tte_reset = nil
+            self:tte_update()
         end
 
-        self:pbc_think()
+        self:tte_think()
     end
 
 
     function ENT:OnRemove()
-        self.pbc_reset = true
+        self.tte_reset = true
 
         timer.Simple( 0, function()
             if ( self and self:IsValid() ) then
                 return
             end
 
-            pbc_controllers[self] = nil
+            tte_controllers[self] = nil
         end )
     end
 
 
-    function ENT:pbc_visible()
+    function ENT:tte_visible()
         if FrameTime() == 0 or self:GetNW2Bool( "beamDisable", false ) then return false end -- gui.IsConsoleVisible()
 
         return true
     end
 
 
-    function ENT:pbc_render()
-        if not self.pbc_ready then
+    function ENT:tte_render()
+        if not self.tte_ready then
             return
         end
 
-        for i = 1, #self.pbc_beams do
-            local beam = self.pbc_beams[i]
+        for i = 1, #self.tte_beams do
+            local beam = self.tte_beams[i]
             local data = beam.data
 
             local points = beam.points
@@ -337,20 +330,20 @@ if CLIENT then
             end
         end
 
-        self.pbc_beams[#self.pbc_beams + 1] = beam
+        self.tte_beams[#self.tte_beams + 1] = beam
     end
 
 
-    function ENT:pbc_think()
-        if not pbc_controllers[self] then
-            self.pbc_reset = true
+    function ENT:tte_think()
+        if not tte_controllers[self] then
+            self.tte_reset = true
             return
         end
 
-        self.pbc_ready = nil
+        self.tte_ready = nil
 
-        if not self:pbc_visible() or ( not self.pbc_data.sourceEnable and not self.pbc_data.pointEnable and not self.pbc_data.beamEnable ) then return end
-        if self.pbc_data.randomDisable and math.random( 0, 100 ) >  self.pbc_data.randomDisable then return end
+        if not self:tte_visible() or ( not self.tte_data.sourceEnable and not self.tte_data.pointEnable and not self.tte_data.beamEnable ) then return end
+        if self.tte_data.randomDisable and math.random( 0, 100 ) >  self.tte_data.randomDisable then return end
 
         local ent1 = self:GetNW2Entity( "beamEntity1", self )
         local ent2 = self:GetNW2Entity( "beamEntity2", self )
@@ -361,55 +354,55 @@ if CLIENT then
         local pos1 = ent1:LocalToWorld( self:GetNW2Vector( "beamOffset1" ), Vector() )
         local pos2 = ent2:LocalToWorld( self:GetNW2Vector( "beamOffset2" ), Vector() )
 
-        if self.pbc_data.pointDelay then
-            self.pbc_data.velocity = Lerp( self.pbc_data.pointDelay, self.pbc_data.velocity or Vector(), ( ent1:GetVelocity() + ent2:GetVelocity() ) * -0.01 )
+        if self.tte_data.pointDelay then
+            self.tte_data.velocity = Lerp( self.tte_data.pointDelay, self.tte_data.velocity or Vector(), ( ent1:GetVelocity() + ent2:GetVelocity() ) * -0.01 )
         end
 
-        self.pbc_beams = {}
-        self.pbc_data.split = nil
+        self.tte_beams = {}
+        self.tte_data.split = nil
 
-        if self.pbc_data.pointTrace then
+        if self.tte_data.pointTrace then
             local hit1 = util.TraceLine( { start = pos1, endpos = pos2, filter = { self, ent1, ent2 } } )
             local hit2 = util.TraceLine( { start = pos2, endpos = pos1, filter = { self, ent1, ent2 } } )
 
-            local multi = self.pbc_data.pointMulti
+            local multi = self.tte_data.pointMulti
 
             if IsValid( hit1.Entity ) then
                 local fx = EffectData()
 
                 if hit1.Entity:IsPlayer() then
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.HitPos, self.pbc_data, fx ) end
+                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.HitPos, self.tte_data, fx ) end
                 else
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.Entity:NearestPoint( pos1 ), self.pbc_data, fx ) end
+                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.Entity:NearestPoint( pos1 ), self.tte_data, fx ) end
                 end
 
-                self.pbc_data.split = true
+                self.tte_data.split = true
             end
 
             if IsValid( hit2.Entity ) then
                 local fx = EffectData()
 
                 if hit2.Entity:IsPlayer() then
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.HitPos, self.pbc_data, fx ) end
+                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.HitPos, self.tte_data, fx ) end
                 else
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.Entity:NearestPoint( pos2 ), self.pbc_data, fx ) end
+                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.Entity:NearestPoint( pos2 ), self.tte_data, fx ) end
                 end
 
-                self.pbc_data.split = true
+                self.tte_data.split = true
             end
 
-            if not self.pbc_data.split then
-                for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, pos2, self.pbc_data ) end
+            if not self.tte_data.split then
+                for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, pos2, self.tte_data ) end
             end
         else
-            for i = 1, self.pbc_data.pointMulti do CreateBeam( self, ent1, ent2, pos1, pos2, self.pbc_data ) end
+            for i = 1, self.tte_data.pointMulti do CreateBeam( self, ent1, ent2, pos1, pos2, self.tte_data ) end
         end
 
-        self.pbc_ready = true
+        self.tte_ready = true
     end
 
 
-    function ENT:pbc_update()
+    function ENT:tte_update()
         local info = self.NMEVals
         local data = {}
 
@@ -475,14 +468,14 @@ if CLIENT then
             data.particleMaterial = info.particleMaterial or "effects/spark"
         end
 
-        self.pbc_data = data
+        self.tte_data = data
 
-        pbc_controllers[self] = true
+        tte_controllers[self] = true
     end
 
 
-    function ENT:pbc_remove()
-        pbc_controllers[self] = nil
+    function ENT:tte_remove()
+        tte_controllers[self] = nil
     end
 
 

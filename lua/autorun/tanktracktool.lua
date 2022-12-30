@@ -18,4 +18,17 @@ if CLIENT then
 	include("tanktracktool/util.lua")
 	include("tanktracktool/tracks.lua")
 	include("tanktracktool/effects.lua")
+
+    tte_controllers = tte_controllers or {}
+    local tte_controllers = tte_controllers
+
+    hook.Add( "PostDrawTranslucentRenderables", "tanktracktool_tte_renderer", function()
+        if not next( tte_controllers ) then return end
+
+        for k, v in pairs( tte_controllers ) do
+            if v and IsValid( k ) then
+                k:tte_render()
+            end
+        end
+    end )
 end
