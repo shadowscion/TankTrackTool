@@ -1,5 +1,4 @@
 
--- NME
 if SERVER then AddCSLuaFile() end
 
 DEFINE_BASECLASS( "base_nme" )
@@ -107,7 +106,6 @@ edit.values = {
 
 if CLIENT then
 
-
     local pairs, math, util, cam, render, IsValid, LerpVector, VectorRand =
           pairs, math, util, cam, render, IsValid, LerpVector, VectorRand
 
@@ -117,8 +115,6 @@ if CLIENT then
 
     local matbeam = Material( "tripmine_laser" )
     local matpoint = Material( "sprites/gmdm_pickups/light" )
-
-
 
     function ENT:TriggerNME(type, ...)
         if type == "editor_open" or type == "editor_close" then
@@ -130,7 +126,6 @@ if CLIENT then
             self.tte_reset = true
         end
     end
-
 
     do
         local _grey = Color(255, 255, 255, 150)
@@ -177,16 +172,13 @@ if CLIENT then
         end
     end
 
-
     function ENT:Initialize()
         self.BaseClass.Initialize( self )
     end
 
-
     function ENT:Draw()
         self:DrawModel()
     end
-
 
     function ENT:Think()
         self.BaseClass.Think( self )
@@ -198,7 +190,6 @@ if CLIENT then
 
         self:tte_think()
     end
-
 
     function ENT:OnRemove()
         self.tte_reset = true
@@ -212,13 +203,11 @@ if CLIENT then
         end )
     end
 
-
     function ENT:tte_visible()
         if FrameTime() == 0 or self:GetNW2Bool( "beamDisable", false ) then return false end -- gui.IsConsoleVisible()
 
         return true
     end
-
 
     function ENT:tte_render()
         if not self.tte_ready then
@@ -270,7 +259,6 @@ if CLIENT then
         end
 
     end
-
 
     local emitter = ParticleEmitter( Vector() )
     local gravity = Vector()
@@ -332,7 +320,6 @@ if CLIENT then
 
         self.tte_beams[#self.tte_beams + 1] = beam
     end
-
 
     function ENT:tte_think()
         if not tte_controllers[self] then
@@ -400,7 +387,6 @@ if CLIENT then
 
         self.tte_ready = true
     end
-
 
     function ENT:tte_update()
         local info = self.NMEVals
@@ -473,22 +459,19 @@ if CLIENT then
         tte_controllers[self] = true
     end
 
-
     function ENT:tte_remove()
         tte_controllers[self] = nil
     end
-
 
 end
 
 
 if SERVER then
 
-
-    function ENT:SpawnFunction( ply, tr, Class )
+    function ENT:SpawnFunction( ply, tr, class )
         if not tr.Hit then return end
 
-        local ent = ents.Create( ClassName )
+        local ent = ents.Create( class )
         ent:SetModel( "models/hunter/plates/plate.mdl" )
         ent:SetPos( tr.HitPos + tr.HitNormal * 40 )
         ent:Spawn()
@@ -503,7 +486,6 @@ if SERVER then
         return ent
     end
 
-
     function ENT:Initialize()
         self.BaseClass.Initialize( self )
 
@@ -515,7 +497,6 @@ if SERVER then
             self.Inputs = Wire_CreateInputs( self, { "Disable", "Entity1 [ENTITY]", "Entity2 [ENTITY]", "Offset1 [VECTOR]", "Offset2 [VECTOR]" } )
         end
     end
-
 
     -- Wiremod Stuff
     local inputTriggers = {
@@ -536,33 +517,27 @@ if SERVER then
         end,
     }
 
-
     function ENT:TriggerInput( iname, ivalue, ... )
         if inputTriggers[iname] then
             inputTriggers[iname]( self, iname, ivalue )
         end
     end
 
-
     function ENT:OnRemove()
         if WireLib then WireLib.Remove( self ) end
     end
-
 
     function ENT:OnRestore()
         if WireLib then WireLib.Restored( self)  end
     end
 
-
     function ENT:BuildDupeInfo()
         return WireLib and WireLib.BuildDupeInfo( self )
     end
 
-
     function ENT:ApplyDupeInfo( ply, ent, info, GetEntByID )
         if WireLib then WireLib.ApplyDupeInfo( ply, ent, info, GetEntByID ) end
     end
-
 
     function ENT:PreEntityCopy()
         self.BaseClass.PreEntityCopy( self )
@@ -575,13 +550,11 @@ if SERVER then
         end
     end
 
-
     function ENT:OnEntityCopyTableFinish( dupedata )
         dupedata.OverlayData = nil
         dupedata.lastWireOverlayUpdate = nil
         dupedata.WireDebugName = nil
     end
-
 
     local function EntityLookup( CreatedEntities )
         return function( id, default )
@@ -592,12 +565,10 @@ if SERVER then
         end
     end
 
-
     function ENT:OnDuplicated( dupe )
         self.BaseClass.OnDuplicated( self, dupe )
         self.DuplicationInProgress = true
     end
-
 
     function ENT:PostEntityPaste( Player, Ent, CreatedEntities )
         if Ent.EntityMods and Ent.EntityMods.WireDupeInfo then
@@ -605,6 +576,5 @@ if SERVER then
         end
         self.DuplicationInProgress = nil
     end
-
 
 end
