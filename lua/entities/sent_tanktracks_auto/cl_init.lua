@@ -149,10 +149,9 @@ function ENT:Draw()
     end
 end
 
-
 --
 function ENT:ttfunc_reset()
-    self.ttdata_mode = tttlib.modes[self.NMEVals.suspensionType]
+    self.ttdata_mode = tttlib.track_modes[self.NMEVals.suspensionType]
 
     if self.ttdata_mode then
         self:ttfunc_setmatrix()
@@ -187,7 +186,7 @@ function ENT:ttfunc_reset()
             tttlib.tracks_think( self )
         end
 
-        tttlib.renderbounds( self )
+        tttlib.tracks_renderBounds( self )
     end
 end
 

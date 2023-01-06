@@ -4,7 +4,7 @@ local tttlib = tttlib
 local LocalToWorld, WorldToLocal = LocalToWorld, WorldToLocal
 local math = math
 
-local mode = tttlib.mode( "classic" )
+local mode = tttlib.tracks_addMode( "classic" )
 mode.csents = { wheel = true, roller = true }
 
 function mode:setup( ent, isdouble )

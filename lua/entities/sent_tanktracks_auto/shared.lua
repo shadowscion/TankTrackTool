@@ -276,7 +276,7 @@ if CLIENT then -- editor hacks
     end
 
     local edit = tankTrackVars:GetVar( "trackMaterial" ).edit
-    edit.values = tttlib.textureList()
+    edit.values = tttlib.tracks_textureList()
     edit.images = "tanktracktool/autotracks/gui/%s"
 
 

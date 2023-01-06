@@ -37,6 +37,15 @@ local cv_ad = CreateClientConVar( "tanktracktool_detail_incr", "1", true, false,
 
 local tttlib = tttlib
 
+function tttlib.tracks_textureList()
+    local ret = {}
+    for k, v in SortedPairs( file.Find( string.format( "materials/%s/*.vtf", "tanktracktool/autotracks/" ), "GAME" ) ) do
+        local name = string.StripExtension( string.GetFileFromFilename( v ) )
+        ret[name] = k
+    end
+    return ret
+end
+
 
 --
 local trackverts_lines = { 1, 3, 3, 4, 4, 2, 2, 6, 6, 5, 5, 1, 7, 8, 8, 8 }

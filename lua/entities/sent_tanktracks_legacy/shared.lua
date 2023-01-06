@@ -56,6 +56,6 @@ tankTrackVars:Var( "rollerRadius", "Float", { min = -250, max = 250, def = 0, ti
 
 if CLIENT then
     local edit = tankTrackVars:GetVar( "trackMaterial" ).edit
-    edit.values = tttlib.textureList()
+    edit.values = tttlib.tracks_textureList()
     edit.images = "tanktracktool/autotracks/gui/%s"
 end

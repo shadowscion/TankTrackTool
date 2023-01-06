@@ -3,7 +3,8 @@ tttlib = tttlib or {}
 
 if SERVER then
     AddCSLuaFile( "tanktracktool/util.lua" )
-    AddCSLuaFile( "tanktracktool/tracks.lua" )
+    AddCSLuaFile( "tanktracktool/tracks_mode.lua" )
+    AddCSLuaFile( "tanktracktool/tracks_mesh.lua" )
     AddCSLuaFile( "tanktracktool/effects.lua" )
 end
 
@@ -16,7 +17,8 @@ if CLIENT then
     end )
 
     include( "tanktracktool/util.lua" )
-    include( "tanktracktool/tracks.lua" )
+    include( "tanktracktool/tracks_mode.lua" )
+    include( "tanktracktool/tracks_mesh.lua" )
     include( "tanktracktool/effects.lua" )
 
     tte_controllers = tte_controllers or {}

@@ -1,6 +1,4 @@
 
-tttlib.modes = {}
-
 local math, file, string, render, tonumber, Vector, Angle =
       math, file, string, render, tonumber, Vector, Angle
 
@@ -8,8 +6,6 @@ local pi = math.pi
 local deg2rad = pi / 180
 local rad2deg = 180 / pi
 
-
---  MATH
 function tttlib.toLocalAng( pos, ang, l )
     local p, a = WorldToLocal( _zvec, l, pos, ang )
     return a
@@ -78,179 +74,7 @@ function tttlib.calcbounds( min, max, pos )
     if pos.z < min.z then min.z = pos.z elseif pos.z > max.z then max.z = pos.z end
 end
 
-function tttlib.renderbounds( self )
-    local rendermin, rendermax = Vector( 0, 0, -self.NMEVals.suspensionZ ), Vector( 0, 0, self.NMEVals.suspensionZ )
-    local renderpos, renderang = self:ttfunc_getmatrix()
 
-    renderpos, renderang = WorldToLocal( self:GetPos(), self:GetAngles(), renderpos, renderang )
-    tttlib.calcbounds( rendermin, rendermax, renderpos )
-
-    for i = 1, #self.ttdata_parts do
-        local wheel = self.ttdata_parts[i][1]
-        tttlib.calcbounds( rendermin, rendermax, wheel[1] + wheel.maxs )
-        if self.ttdata_isdouble then
-            tttlib.calcbounds( rendermin, rendermax, wheel[2] + wheel.mins )
-        end
-    end
-
-    self.rendermin = rendermin
-    self.rendermax = rendermax
-    self:SetRenderBounds( self.rendermin, self.rendermax )
-end
-
-
---  PARTS AND COMPONENTS
-local render_multiply = "RenderMultiply"
-
-local function createcsents( self, ent )
-    local csents = { wheel = true }
-
-    for k, v in pairs( ent.ttdata_csents ) do
-        if not self.csents[k] and IsValid( v ) then
-            --print( "removing", k )
-            v:Remove()
-        end
-    end
-
-    for k, v in pairs( self.csents ) do
-        if not IsValid( ent.ttdata_csents[k] ) then
-            ent.ttdata_csents[k] = ents.CreateClientside( "base_anim" )
-            --print( "creating", k )
-        else
-            --print( "exists", k )
-        end
-        ent.ttdata_csents[k].RenderGroup = RENDERGROUP_OPAQUE
-        ent.ttdata_csents[k]:SetRenderMode( RENDERMODE_TRANSCOLOR )
-        ent.ttdata_csents[k]:SetNoDraw( true )
-        ent.ttdata_csents[k]:SetLOD( 0 )
-        ent.ttdata_csents[k].model = nil
-    end
-
-    ent.ttdata_parts = {}
-end
-
-local function rendercomponent( self, ent, component, isdouble )
-    local csent = component.csent
-
-    if component.nodraw then
-        if component.postrender then
-            component:postrender( self, ent, isdouble )
-        end
-
-        return
-    end
-
-    if csent.model ~= component.model then
-        csent.model = component.model
-        csent:SetModel( component.model )
-    end
-
-    if component.bodygroup then
-        csent:SetBodyGroups( component.bodygroup )
-    else
-        csent:SetBodyGroups( nil )
-    end
-
-    if component.setupscale then
-        component:setupscale()
-    else
-        csent:EnableMatrix( render_multiply, component.scale )
-    end
-
-    if component.color then
-        local c = component.color
-        csent.RenderGroup = c.a ~= 255 and RENDERGROUP_BOTH or RENDERGROUP_OPAQUE
-        render.SetBlend( c.a )
-        render.SetColorModulation( c.r, c.g, c.b )
-    else
-        csent.RenderGroup = RENDERGROUP_OPAQUE
-        render.SetBlend( 1 )
-        render.SetColorModulation( 1, 1, 1 )
-    end
-
-    if component.material then
-        csent:SetMaterial( component.material )
-        csent:SetSubMaterial( nil )
-    elseif component.submaterials then
-        csent:SetMaterial( nil )
-        for s = 1, #component.submaterials do
-            csent:SetSubMaterial( s - 1, component.submaterials[s] )
-        end
-    else
-        csent:SetMaterial( nil )
-        csent:SetSubMaterial( nil )
-    end
-
-    csent:SetPos( component.le_posworld )
-    csent:SetAngles( component.le_angworld )
-    csent:SetupBones()
-    csent:DrawModel()
-
-    if isdouble then
-        if component.setupscale_ri then
-            component:setupscale_ri()
-        end
-
-        csent:SetPos( component.ri_posworld )
-        csent:SetAngles( component.ri_angworld )
-        csent:SetupBones()
-        csent:DrawModel()
-    end
-
-    if component.postrender then
-        component:postrender( self, ent, isdouble )
-    end
-end
-tttlib.rendercomponent = rendercomponent
-
-local function rendercsents( self, ent, isdouble )
-    if self.prerender then self:prerender( ent ) end
-
-    local parts = ent.ttdata_parts
-
-    for i = 1, #parts do
-        local components = parts[i]
-        for j = 1, #components do
-            rendercomponent( self, ent, components[j], isdouble )
-        end
-    end
-
-    if self.postrender then self:postrender( ent ) end
-
-    render.SetColorModulation( 1, 1, 1 )
-    render.SetBlend( 1 )
-end
-
-local function addcomponent( self, csent )
-    local component = {
-        csent = csent,
-        le_poslocal = Vector(),
-        le_posworld = Vector(),
-        le_anglocal = Angle(),
-        le_angworld = Angle(),
-        ri_poslocal = Vector(),
-        ri_posworld = Vector(),
-        ri_anglocal = Angle(),
-        ri_angworld = Angle(),
-        scale = Matrix(),
-     }
-    component.id = table.insert( self, component )
-    return component
-end
-
-local function addpart( self, ent, i )
-    local part = { addcomponent = addcomponent, id = i }
-    ent.ttdata_parts[i] = part
-    return part
-end
-
-function tttlib.mode( name )
-    tttlib.modes[name] = { name = name, setup = function() end, think = function() end, addpart = addpart, render = rendercsents, createcsents = createcsents, csents = {} }
-    return tttlib.modes[name]
-end
-
-
---  MODEL AND MATERIAL CHECKS
 local modelcheck = {}
 local modelblacklist = {
     ["models/lubprops/seat/raceseat2.mdl"] = true,
@@ -330,8 +154,6 @@ local function IsValidModel( model )
 end
 tttlib.isValidModel = IsValidModel
 
-
---  SCALE FIXER
 function tttlib.fixWheel( csent, model, bodygroups, materials, radius, width )
     model = IsValidModel( model )
 
@@ -401,13 +223,3 @@ function tttlib.fixWheel( csent, model, bodygroups, materials, radius, width )
 
     return model, bodygroup, submaterials, m, scale, Vector( -radius, -width * 0.5, -radius ), Vector( radius, width * 0.5, radius )
 end
-
-function tttlib.textureList()
-    local ret = {}
-    for k, v in SortedPairs( file.Find( string.format( "materials/%s/*.vtf", "tanktracktool/autotracks/" ), "GAME" ) ) do
-        local name = string.StripExtension( string.GetFileFromFilename( v ) )
-        ret[name] = k
-    end
-    return ret
-end
-

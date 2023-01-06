@@ -6,7 +6,7 @@ local LocalToWorld, WorldToLocal = LocalToWorld, WorldToLocal
 local math = math
 
 --
-local mode = tttlib.mode( "torsion" )
+local mode = tttlib.tracks_addMode( "torsion" )
 mode.csents = { wheel = true, roller = true, arm = true, damper = true }
 
 local render_multiply = "RenderMultiply"
@@ -49,7 +49,7 @@ local function setup_armbones( self )
 end
 
 function mode:setup( ent, isdouble )
-    tttlib.modes.classic.setup( self, ent, ent.ttdata_isdouble )
+    tttlib.track_modes.classic.setup( self, ent, ent.ttdata_isdouble )
 
     local csents = ent.ttdata_csents
     local values = ent.NMEVals
@@ -442,12 +442,12 @@ end
 
 
 --
-local mode = tttlib.mode( "bogie" )
+local mode = tttlib.tracks_addMode( "bogie" )
 mode.csents = { wheel = true, roller = true, arm = true, damper = true, bogie = true }
 
 function mode:setup( ent, isdouble )
-    return tttlib.modes.torsion.setup( self, ent, isdouble )
+    return tttlib.track_modes.torsion.setup( self, ent, isdouble )
 end
 function mode:think( ent, isdouble )
-    return tttlib.modes.torsion.think( self, ent, isdouble )
+    return tttlib.track_modes.torsion.think( self, ent, isdouble )
 end
