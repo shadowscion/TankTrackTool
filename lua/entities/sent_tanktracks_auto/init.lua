@@ -1,72 +1,98 @@
 
 AddCSLuaFile( "shared.lua" )
 AddCSLuaFile( "cl_init.lua" )
-AddCSLuaFile( "modes/classic.lua" )
-AddCSLuaFile( "modes/torsion.lua" )
-
 include( "shared.lua" )
 
-function ENT:SpawnFunction( ply, tr, ClassName )
-    if not tr.Hit then
-        return
-    end
+ENT.tanktracktool_spawnHeight = 40
 
-    local model = ply:GetInfo( "tanktracktool_model" )
-    if not util.IsValidModel( model ) then model = "models/hunter/plates/plate.mdl" end
 
-    local ent = ents.Create( ClassName )
-    ent:SetModel( model )
-    ent:SetPos( tr.HitPos + tr.HitNormal * 40 )
-    ent:Spawn()
-    ent:Activate()
-
-    local phys = ent:GetPhysicsObject()
-    if IsValid( phys ) then
-        phys:EnableMotion( false )
-        phys:Wake()
-    end
-
-    return ent
+--[[
+    wiremod
+]]
+function ENT:netvar_wireInputs()
+    return { "LeftScroll", "LeftBrake", "RightScroll", "RightBrake", "AxisEntity [ENTITY]" }
 end
 
-function ENT:Initialize()
-    self.BaseClass.Initialize( self )
-
-    self:PhysicsInit( SOLID_VPHYSICS )
-    self:SetMoveType( MOVETYPE_VPHYSICS )
-    self:SetSolid( SOLID_VPHYSICS )
-
-    if Wire_CreateInputs then
-        self.Inputs = Wire_CreateInputs( self, { "LeftScroll", "LeftBrake", "RightScroll", "RightBrake", "AxisEntity [ENTITY]" } )
-    end
+local inputs = {}
+inputs.LeftScroll = function( self, ply, value )
+    self:SetNW2Float( "netwire_leftScroll", value )
+end
+inputs.LeftBrake = function( self, ply, value )
+    self:SetNW2Bool( "netwire_leftBrake", tobool( value ) )
+end
+inputs.RightScroll = function( self, ply, value )
+    self:SetNW2Float( "netwire_rightScroll", value )
+end
+inputs.RightBrake = function( self, ply, value )
+    self:SetNW2Bool( "netwire_rightBrake", value )
+end
+inputs.AxisEntity = function( self, ply, value )
+    if ply and not tanktracktool.netvar.canLink( value, ply ) then value = nil end
+    self:SetNW2Entity( "netwire_axisEntity", ivalue )
 end
 
-local inputTriggers = {
-    LeftScroll = function( self, iname, ivalue, src )
-        self:SetNW2Float( "leftScroll", ivalue )
-    end,
-    LeftBrake = function( self, iname, ivalue, src )
-        self:SetNW2Bool( "leftBrake", ivalue )
-    end,
-    RightScroll = function( self, iname, ivalue, src )
-        self:SetNW2Float( "rightScroll", ivalue )
-    end,
-    RightBrake = function( self, iname, ivalue, src )
-        self:SetNW2Bool( "rightBrake", ivalue )
-    end,
-    AxisEntity = function( self, iname, ivalue, src )
-        self:SetNW2Entity( "axisEntity", ivalue )
-    end,
- }
-
-function ENT:TriggerInput( iname, ivalue, ... )
-    if inputTriggers[iname] then
-        inputTriggers[iname]( self, iname, ivalue )--, self.Inputs[iname].Src )
-    end
+function ENT:TriggerInput( name, value )
+    if inputs[name] then inputs[name]( self, WireLib and WireLib.GetOwner( self ), value ) end
 end
 
 
--- LEGACY COMPAT
+--[[
+    legacy... this is for the old variable system
+]]
+function ENT:netvar_nme( data )
+    if istable( data.wheelTable ) then
+        local instance = { "whnBodygroup", "whnColor", "whnMaterial", "whnModel", "whnOffsetX", "whnOffsetY", "whnOffsetZ", "whnOverride", "whnRadius", "whnSuspension", "whnTraceZ", "whnWidth" }
+
+        local count = self.netvar.variables:get( "wheelCount" ).data.max
+        if tonumber( data.wheelCount ) then
+            count = math.min( tonumber( data.wheelCount ), count )
+        end
+
+        for k, v in pairs( instance ) do
+            if self.netvar.variables:get( v ) then
+                data[v] = {}
+                for i = 1, count do
+                    local value = data.wheelTable[i][v]
+                    if value ~= nil then
+                        data[v][i] = value
+                    end
+                end
+            end
+        end
+
+        data.wheelTable = nil
+    end
+
+    if istable( data.rollerTable ) then
+        local instance = { "ronBodygroup", "ronColor", "ronMaterial", "ronModel", "ronOffsetX", "ronOffsetY", "ronOffsetZ", "ronOverride", "ronRadius", "ronWidth" }
+
+        local count = self.netvar.variables:get( "rollerCount" ).data.max
+        if tonumber( data.rollerCount ) then
+            count = math.min( tonumber( data.rollerCount ), count )
+        end
+
+        for k, v in pairs( instance ) do
+            if self.netvar.variables:get( v ) then
+                data[v] = {}
+                for i = 1, count do
+                    local value = data.rollerTable[i][v]
+                    if value ~= nil then
+                        data[v][i] = value
+                    end
+                end
+            end
+        end
+
+        data.rollerTable = nil
+    end
+
+    return data
+end
+
+
+--[[
+    legacy... this is for ttc
+]]
 local function a1z26_toTable( str, int )
     if not str then return end
     local ret = {}
@@ -83,39 +109,40 @@ local function a1z26_toTable( str, int )
     return ret
 end
 
-local function convert( ent, legacy )
-    local update = false--not game.SinglePlayer()
+local function SuperLegacy( self, dupedata )
+    if not istable( dupedata ) then return end
 
-    ent:SetValueNME( update, "suspensionType", nil, "classic" )
+    self:netvar_set( "suspensionType", nil, "classic" )
 
     -- tracks
-    if isstring( legacy.TrackMaterial ) then
-        ent:SetValueNME( update, "trackMaterial", nil, string.gsub( legacy.TrackMaterial, "track_", "" ) )
+    if isstring( dupedata.TrackMaterial ) then
+        local k, v = string.gsub( dupedata.TrackMaterial, "track_", "" )
+        self:netvar_set( "trackMaterial", nil, k )
     end
 
-    ent:SetValueNME( update, "trackHeight", nil, legacy.TrackHeight )
-    ent:SetValueNME( update, "trackWidth", nil, legacy.TrackWidth )
-    ent:SetValueNME( update, "trackTension", nil, legacy.TrackTension )
-    ent:SetValueNME( update, "trackRes", nil, legacy.TrackResolution )
+    self:netvar_set( "trackHeight", nil, dupedata.TrackHeight )
+    self:netvar_set( "trackWidth", nil, dupedata.TrackWidth )
+    self:netvar_set( "trackTension", nil, dupedata.TrackTension )
+    self:netvar_set( "trackRes", nil, dupedata.TrackResolution )
 
     -- suspension
-    ent:SetValueNME( update, "systemOffsetX", nil, legacy.WheelOffsetX )
+    self:netvar_set( "systemOffsetX", nil, dupedata.WheelOffsetX )
 
-    ent:SetValueNME( update, "suspensionX", nil, legacy.WheelBase )
-    ent:SetValueNME( update, "suspensionY", nil, ( legacy.WheelOffsetY or 0 ) * 2 )
-    ent:SetValueNME( update, "suspensionZ", nil, legacy.WheelOffsetZ )
+    self:netvar_set( "suspensionX", nil, dupedata.WheelBase )
+    self:netvar_set( "suspensionY", nil, ( dupedata.WheelOffsetY or 0 ) * 2 )
+    self:netvar_set( "suspensionZ", nil, dupedata.WheelOffsetZ )
 
-    if legacy.RoadWType == "interleave" then
-        ent:SetValueNME( update, "suspensionInterleave", nil, 0.5 )
+    if dupedata.RoadWType == "interleave" then
+        self:netvar_set( "suspensionInterleave", nil, 0.5 )
     end
 
     -- wheels
-    local count = ( legacy.RoadWCount or 0 ) + ( legacy.DriveWEnabled and 1 or 0 ) + ( legacy.IdlerWEnabled and 1 or 0 )
-    ent:SetValueNME( update, "wheelCount", nil, count )
+    local count = ( dupedata.RoadWCount or 0 ) + ( dupedata.DriveWEnabled and 1 or 0 ) + ( dupedata.IdlerWEnabled and 1 or 0 )
+    self:netvar_set( "wheelCount", nil, count )
 
-    local wheelColor = isvector( legacy.WheelColor ) and string.format( "%d %d %d 255", legacy.WheelColor.x, legacy.WheelColor.y, legacy.WheelColor.z ) or nil
+    local wheelColor = isvector( dupedata.WheelColor ) and string.format( "%d %d %d 255", dupedata.WheelColor.x, dupedata.WheelColor.y, dupedata.WheelColor.z ) or nil
 
-    local wheelMaterial = isstring( legacy.WheelMaterial ) and string.Explode( ", ", legacy.WheelMaterial )
+    local wheelMaterial = isstring( dupedata.WheelMaterial ) and string.Explode( ", ", dupedata.WheelMaterial )
     if wheelMaterial then
         if #wheelMaterial == 1 then
             wheelMaterial = { wheelMaterial[1] }
@@ -126,110 +153,107 @@ local function convert( ent, legacy )
             end
             wheelMaterial = r
         end
+        for i = 1, #wheelMaterial do
+            if wheelMaterial[i] == "\"\"" then wheelMaterial[i] = nil end
+        end
     end
 
     -- sprocket
-    if legacy.DriveWEnabled then
-        local z_offset = ( legacy.DriveWOffsetZ or 0 ) + ( legacy.DriveWDiameter or 0 ) * 0.5 + ( legacy.TrackHeight or 0 )
+    if dupedata.DriveWEnabled then
+        local z_offset = ( dupedata.DriveWOffsetZ or 0 ) + ( dupedata.DriveWDiameter or 0 ) * 0.5 + ( dupedata.TrackHeight or 0 )
 
         local index = 1
-        ent:SetValueNME( update, "whnSuspension", index, 0 )
-        ent:SetValueNME( update, "whnOffsetZ", index, z_offset )
-        ent:SetValueNME( update, "whnOverride", index, 1 )
-        ent:SetValueNME( update, "whnRadius", index, ( legacy.DriveWDiameter or 0 ) * 0.5 )
-        ent:SetValueNME( update, "whnWidth", index, legacy.DriveWWidth )
-        ent:SetValueNME( update, "whnModel", index, legacy.DriveWModel )
-        ent:SetValueNME( update, "whnBodygroup", index, legacy.DriveWBGroup )
+        self:netvar_set( "whnSuspension", index, 0 )
+        self:netvar_set( "whnOffsetZ", index, z_offset )
+        self:netvar_set( "whnOverride", index, 1 )
+        self:netvar_set( "whnRadius", index, ( dupedata.DriveWDiameter or 0 ) * 0.5 )
+        self:netvar_set( "whnWidth", index, dupedata.DriveWWidth )
+        self:netvar_set( "whnModel", index, dupedata.DriveWModel )
+        self:netvar_set( "whnBodygroup", index, dupedata.DriveWBGroup )
 
         if wheelColor then
-            ent:SetValueNME( update, "whnColor", index, wheelColor )
+            self:netvar_set( "whnColor", index, wheelColor )
         end
         if wheelMaterial then
-            ent:SetValueNME( update, "whnMaterial", index, wheelMaterial )
+            self:netvar_set( "whnMaterial", index, wheelMaterial )
         end
     end
 
     -- idler
-    if legacy.IdlerWEnabled then
-        local z_offset = ( legacy.IdlerWOffsetZ or 0 ) + ( legacy.IdlerWDiameter or 0 ) * 0.5 + ( legacy.TrackHeight or 0 )
+    if dupedata.IdlerWEnabled then
+        local z_offset = ( dupedata.IdlerWOffsetZ or 0 ) + ( dupedata.IdlerWDiameter or 0 ) * 0.5 + ( dupedata.TrackHeight or 0 )
 
         local index = 2
-        ent:SetValueNME( update, "whnSuspension", index, 0 )
-        ent:SetValueNME( update, "whnOffsetZ", index, z_offset )
-        ent:SetValueNME( update, "whnOverride", index, 1 )
-        ent:SetValueNME( update, "whnRadius", index, ( legacy.IdlerWDiameter or 0 ) * 0.5 )
-        ent:SetValueNME( update, "whnWidth", index, legacy.IdlerWWidth )
-        ent:SetValueNME( update, "whnModel", index, legacy.IdlerWModel )
-        ent:SetValueNME( update, "whnBodygroup", index, legacy.IdlerWBGroup )
+        self:netvar_set( "whnSuspension", index, 0 )
+        self:netvar_set( "whnOffsetZ", index, z_offset )
+        self:netvar_set( "whnOverride", index, 1 )
+        self:netvar_set( "whnRadius", index, ( dupedata.IdlerWDiameter or 0 ) * 0.5 )
+        self:netvar_set( "whnWidth", index, dupedata.IdlerWWidth )
+        self:netvar_set( "whnModel", index, dupedata.IdlerWModel )
+        self:netvar_set( "whnBodygroup", index, dupedata.IdlerWBGroup )
 
         if wheelColor then
-            ent:SetValueNME( update, "whnColor", index, wheelColor )
+            self:netvar_set( "whnColor", index, wheelColor )
         end
         if wheelMaterial then
-            ent:SetValueNME( update, "whnMaterial", index, wheelMaterial )
+            self:netvar_set( "whnMaterial", index, wheelMaterial )
         end
     end
 
     -- road
-    ent:SetValueNME( update, "wheelRadius", nil, ( legacy.RoadWDiameter or 0 ) * 0.5 )
-    ent:SetValueNME( update, "wheelWidth", nil, legacy.RoadWWidth )
-    ent:SetValueNME( update, "wheelModel", nil, legacy.RoadWModel )
-    ent:SetValueNME( update, "wheelBodygroup", nil, legacy.RoadWBGroup )
+    self:netvar_set( "wheelRadius", nil, ( dupedata.RoadWDiameter or 0 ) * 0.5 )
+    self:netvar_set( "wheelWidth", nil, dupedata.RoadWWidth )
+    self:netvar_set( "wheelModel", nil, dupedata.RoadWModel )
+    self:netvar_set( "wheelBodygroup", nil, dupedata.RoadWBGroup )
 
-    local offsets = a1z26_toTable( legacy.RoadWOffsetsX, 99 )
+    local offsets = a1z26_toTable( dupedata.RoadWOffsetsX, 99 )
     if offsets then
         for i = 1, #offsets do
-            ent:SetValueNME( update, "whnOffsetX", i + 2, offsets[i] )
+            self:netvar_set( "whnOffsetX", i + 2, offsets[i] )
         end
     end
     if wheelColor then
-        ent:SetValueNME( update, "wheelColor", nil, wheelColor )
+        self:netvar_set( "wheelColor", nil, wheelColor )
     end
     if wheelMaterial then
-        ent:SetValueNME( update, "wheelMaterial", nil, wheelMaterial )
+        self:netvar_set( "wheelMaterial", nil, wheelMaterial )
     end
 
     -- rollers
-    local rollerCount = tonumber( legacy.RollerWCount or 0 )
-    ent:SetValueNME( update, "rollerCount", nil, rollerCount )
+    local rollerCount = tonumber( dupedata.RollerWCount or 0 )
+    self:netvar_set( "rollerCount", nil, rollerCount )
 
     if rollerCount > 0 then
-        ent:SetValueNME( update, "rollerRadius", nil, ( legacy.RollerWDiameter or 0 ) * 0.5 )
-        ent:SetValueNME( update, "rollerWidth", nil, legacy.RollerWWidth )
-        ent:SetValueNME( update, "rollerModel", nil, legacy.RollerWModel )
-        ent:SetValueNME( update, "rollerBodygroup", nil, legacy.RollerWBGroup )
+        self:netvar_set( "rollerRadius", nil, ( dupedata.RollerWDiameter or 0 ) * 0.5 )
+        self:netvar_set( "rollerWidth", nil, dupedata.RollerWWidth )
+        self:netvar_set( "rollerModel", nil, dupedata.RollerWModel )
+        self:netvar_set( "rollerBodygroup", nil, dupedata.RollerWBGroup )
 
-        local offsets = a1z26_toTable( legacy.RollerWOffsetsX, 99 )
+        local offsets = a1z26_toTable( dupedata.RollerWOffsetsX, 99 )
         if offsets then
             for i = 1, #offsets do
-                ent:SetValueNME( update, "ronOffsetX", i, offsets[i] )
+                self:netvar_set( "ronOffsetX", i, offsets[i] )
             end
         end
         if wheelColor then
-            ent:SetValueNME( update, "rollerColor", nil, wheelColor )
+            self:netvar_set( "rollerColor", nil, wheelColor )
         end
         if wheelMaterial then
-            ent:SetValueNME( update, "rollerMaterial", nil, wheelMaterial )
+            self:netvar_set( "rollerMaterial", nil, wheelMaterial )
         end
-
-        --RollerWOffsetZ
-        --RollerWBias
     end
 end
 
-duplicator.RegisterEntityClass( "gmod_ent_ttc_auto", function( ply, data )
+duplicator.RegisterEntityClass( "gmod_ent_ttc_auto", function( ply, dupedata )
     local ent = ents.Create( "sent_tanktracks_auto" )
 
-    duplicator.DoGeneric( ent, data )
+    duplicator.DoGeneric( ent, dupedata )
 
     ent:Spawn()
     ent:Activate()
 
-    local legacy = data.EntityMods and data.EntityMods._ENW2V_DUPED
-    if legacy then
-        convert( ent, legacy )
-        duplicator.ClearEntityModifier( ent, "_ENW2V_DUPED" )
-    end
+    pcall( SuperLegacy, ent, dupedata.EntityMods and dupedata.EntityMods._ENW2V_DUPED )
+    duplicator.ClearEntityModifier( ent, "_ENW2V_DUPED" )
 
     ply:AddCount( "sent_tanktracks_auto", ent )
     ply:AddCleanup( "sent_tanktracks_auto", ent )

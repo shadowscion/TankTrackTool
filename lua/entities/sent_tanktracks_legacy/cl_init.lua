@@ -1,57 +1,32 @@
 
---
 include( "shared.lua" )
 
-ENT.NMEIcon = "tanktracktool/icons/editor.png"
-ENT.NMEWiki = "https://github.com/shadowscion/TankTrackTool/wiki"
+local tanktracktool =  tanktracktool
 
+--[[
+    netvar hooks
+]]
 
---
-net.Receive( "tanktracktool_legacy_sync", function( len )
-    local ent = Entity( net.ReadUInt( 32 ) )
-    if not IsValid( ent ) or ent:GetClass() ~= "sent_tanktracks_legacy" then return end
+local hooks = {}
 
-    ent:TriggerNME( "sync_links", net.ReadTable() )
-end )
-
-function ENT:TriggerNME( type, ... )
-    if type == "editor_open" or type == "editor_close" then
-        local editor = select( 1, ... )
-        if IsValid( editor ) then
-            editor.DTree.RootNode:ExpandRecurse( true )
-        end
-    elseif type == "request_sync" then
-        net.Start( "tanktracktool_legacy_sync" )
-        net.WriteUInt( self:EntIndex(), 32 )
-        net.SendToServer()
-    elseif type == "sync_links" then
-        self.ttdata_links = select( 1, ... )
-        self.ttdata_reset = true
-    else
-        self.ttdata_reset = true
+hooks.editor_open = function( self, editor )
+    for k, cat in pairs( editor.Categories ) do
+        cat:SetExpanded( true )
     end
 end
 
-function ENT:Draw()
-    self:DrawModel()
-end
+hooks.netvar_set = function( self ) self.tanktracktool_reset = true end
+hooks.netvar_syncLink = function( self ) self.tanktracktool_reset = true end
+hooks.netvar_syncData = function( self ) self.tanktracktool_reset = true end
 
-function ENT:Think()
-    self.BaseClass.Think( self )
-
-    if tttlib.RenderDisable then return end
-
-    if self.ttdata_reset then
-        self.ttdata_reset = nil
-        self:ttfunc_reset()
-    end
+function ENT:netvar_callback( id, ... )
+    if hooks[id] then hooks[id]( self, ... ) end
 end
 
 
---
-tttlib_RenderOverride = tttlib_RenderOverride or {}
-local RenderOverride = tttlib_RenderOverride
-
+--[[
+    base ent
+]]
 local function real_radius( ent )
     if ent:GetHitBoxBounds( 0, 0 ) then
         local min, max = ent:GetHitBoxBounds( 0, 0 )
@@ -74,126 +49,19 @@ local function GetAngularVelocity( ent, pos, ang )
     return ang_vel --/ FrameTime()
 end
 
-local function UpdateTracks( self, pos, ang )
-    local parts = self.ttdata_parts
-    if not parts then return end
+local mode = tanktracktool.render.mode()
 
-    local sprocket = self.ttdata_sprocket
+function mode:onInit( controller )
+    local entities = controller.netvar.entities
 
-    for i = 1, #parts do
-        local wheel = parts[i][1]
-        local ent = wheel.entity
-
-        if not IsValid( ent ) then
-            self.ttdata_reset = true
-            return
-        end
-
-        wheel[1] = WorldToLocal( ent:GetPos(), ent:GetAngles(), pos, ang )
-        wheel[1].y = self.ttdata_trackoffset
-
-        if i == sprocket then
-            local rot_le = GetAngularVelocity( ent, pos, ang )
-            self.ttdata_le_lastvel = rot_le / ( math.pi * 1.5 ) -- no idea if this is correct nor why it works
-        end
+    controller.autotracks_chassis = entities[1]
+    if not IsValid( controller.autotracks_chassis ) or not table.IsSequential( entities ) then
+        return false
     end
 
-    tttlib.tracks_think( self )
+    local values = controller.netvar.values
 
-    return self.ttdata_tracks_ready
-end
-
-local disable
-local empty = ClientsideModel( "models/props_c17/oildrum001_explosive.mdl" )
-empty:SetNoDraw( true )
-
-local function RenderTracks( self, eyepos, eyedir )
-    if not IsValid( self ) then
-        RenderOverride[self] = nil
-        return
-    end
-
-    local chassis = self.ttdata_chassis
-
-    if not IsValid( chassis ) then
-        RenderOverride[self] = nil
-        return
-    end
-
-    if chassis:IsDormant() then return end
-
-    self.ttdata_matrix = self.ttdata_chassis:GetWorldTransformMatrix()
-    if self.ttdata_rotate then
-        self.ttdata_matrix:Rotate( self.ttdata_rotate )
-    end
-
-    local pos, ang = self.ttdata_matrix:GetTranslation(), self.ttdata_matrix:GetAngles()
-
-    local dot = eyedir:Dot( pos - eyepos )
-    if dot < 0 and math.abs( dot ) > 100 then return end
-
-    if UpdateTracks( self, pos, ang ) then
-        -- ???
-        -- for some reason, this fixes the lighting for meshes
-        render.SetBlend( 0 )
-        empty:SetPos( pos )
-        empty:SetAngles( ang )
-        empty:SetupBones()
-        empty:DrawModel()
-        render.SetBlend( 1 )
-
-        tttlib.tracks_render( self )
-    end
-end
-
-hook.Add( "PostDrawOpaqueRenderables", "tanktracks_legacy", function( bDrawingDepth, bDrawingSkybox, isDraw3DSkybox )
-    if tttlib.RenderDisable or FrameTime() == 0 or gui.IsConsoleVisible() or next( RenderOverride ) == nil then
-        return
-    end
-
-    if not IsValid( empty ) then
-        empty = ClientsideModel( "models/props_c17/oildrum001_explosive.mdl" )
-        empty:SetNoDraw( true )
-    end
-
-    eyepos = EyePos()
-    eyedir = EyeVector()
-
-    for controller in pairs( RenderOverride ) do
-        RenderTracks( controller, eyepos, eyedir )
-    end
-end )
-
-
---
-function ENT:OnRemove()
-    self.ttdata_reset = true
-
-    local prev = RenderOverride[self]
-    RenderOverride[self] = nil
-
-    timer.Simple( 0, function()
-        if ( self and self:IsValid() ) then
-            RenderOverride[self] = prev
-            return
-        end
-    end )
-end
-
-function ENT:ttfunc_reset()
-    RenderOverride[self] = nil
-
-    if not self.ttdata_links then return end
-
-    self.ttdata_chassis = self.ttdata_links[1]
-    if not IsValid( self.ttdata_chassis ) then
-        self.ttdata_parts = nil
-        return
-    end
-
-    local values = self.NMEVals
-
-    self.ttdata_trackvalues = {
+    controller.autotracks_trackvalues = {
         trackColor = values.trackColor,
         trackMaterial = values.trackMaterial,
         trackWidth = values.trackWidth,
@@ -205,35 +73,28 @@ function ENT:ttfunc_reset()
         trackFlip = values.trackFlip,
     }
 
-    self.ttdata_matrix = self.ttdata_chassis:GetWorldTransformMatrix()
-    if values.systemRotate ~= 0 then
-        self.ttdata_rotate = Angle( 0, -90, 0 )
-        self.ttdata_matrix:Rotate( self.ttdata_rotate )
-    else
-        self.ttdata_rotate = nil
-    end
+    controller.autotracks_rotate = values.systemRotate ~= 0 and Angle( 0, -90, 0 ) or nil
+    controller:autotracks_setMatrix()
+    local pos, ang = controller:autotracks_getMatrix()
 
-    local pos, ang = self.ttdata_matrix:GetTranslation(), self.ttdata_matrix:GetAngles()
+    controller.tanktracktool_modeData.parts = {}
+    local parts = controller.tanktracktool_modeData.parts
 
-    self.ttdata_parts = {}
-    for i = 2, #self.ttdata_links do
-        local ent = self.ttdata_links[i]
-
-        if IsValid( ent ) then -- worldspawn[0] == invalid
-            local part = { {entity = ent, radius = real_radius( ent )} }
-            part.id = table.insert( self.ttdata_parts, part )
-            part[1][1] = WorldToLocal( ent:GetPos(), ent:GetAngles(), pos, ang )
+    for i = 2, #entities do
+        local wheel = entities[i]
+        if IsValid( wheel ) then
+            local part = { { entity = wheel, radius = real_radius( wheel ) } }
+            part.index = table.insert( parts, part )
+            part[1][1] = WorldToLocal( wheel:GetPos(), wheel:GetAngles(), pos, ang )
         end
     end
 
-    if #self.ttdata_parts == 0 then
-        return
-    end
+    if #parts == 0 then return false end
 
     local rollercount = 0
-    for i = 1, #self.ttdata_parts do
-        local node_this = self.ttdata_parts[i][1]
-        local node_next = self.ttdata_parts[i == #self.ttdata_parts and 1 or i + 1][1]
+    for i = 1, #parts do
+        local node_this = parts[i][1]
+        local node_next = parts[i == #parts and 1 or i + 1][1]
 
         local offset = math.Clamp( rollercount > 0 and values.rollerRadius or values.wheelRadius, -node_this.radius * 2, node_this.radius * 2 )
         node_this.radius = node_this.radius + offset -- values.trackHeight * 0.25
@@ -243,18 +104,103 @@ function ENT:ttfunc_reset()
             rollercount = rollercount + 1
         end
     end
-    self.ttdata_rollercount = rollercount
 
-    self.ttdata_trackoffset = self.ttdata_parts[1][1][1].y + ( self.ttdata_trackvalues.trackFlip ~= 0 and -1 or 1 ) * values.trackOffsetY
+    controller.autotracks_rollercount = rollercount
+    controller.autotracks_trackoffset = parts[1][1][1].y + ( controller.autotracks_trackvalues.trackFlip ~= 0 and -1 or 1 ) * values.trackOffsetY
+    controller.autotracks_sprocket = math.Clamp( values.wheelSprocket, 1, #parts )
+    controller.autotracks_le_lastpos = controller.autotracks_le_lastpos or Vector()
+    controller.autotracks_le_lastvel = controller.autotracks_le_lastvel or 1
+    controller.autotracks_le_lastrot = controller.autotracks_le_lastrot or 1
 
-    self.ttdata_sprocket = math.Clamp( values.wheelSprocket, 1, #self.ttdata_parts )
+    tanktracktool.autotracks.setup( controller )
+    tanktracktool.autotracks.think( controller )
 
-    self.ttdata_le_lastpos = self.ttdata_le_lastpos or Vector()
-    self.ttdata_le_lastvel = self.ttdata_le_lastvel or 1
-    self.ttdata_le_lastrot = self.ttdata_le_lastrot or 1
+    self:override( controller, true )
+end
 
-    tttlib.tracks_setup( self )
-    tttlib.tracks_think( self )
+function mode:updateTracks( controller, pos, ang )
+    local parts = controller.tanktracktool_modeData.parts
+    if not parts then return end
 
-    RenderOverride[self] = true
+    local sprocket = controller.autotracks_sprocket
+
+    for i = 1, #parts do
+        local wheel = parts[i][1]
+        local ent = wheel.entity
+
+        if not IsValid( ent ) then
+            controller.tanktracktool_reset = true
+            return
+        end
+
+        wheel[1] = WorldToLocal( ent:GetPos(), ent:GetAngles(), pos, ang )
+        wheel[1].y = controller.autotracks_trackoffset
+
+        if i == sprocket then
+            local rot_le = GetAngularVelocity( ent, pos, ang )
+            controller.autotracks_le_lastvel = rot_le / ( math.pi * 1.5 ) -- no idea if this is correct nor why it works
+        end
+    end
+
+    tanktracktool.autotracks.think( controller )
+
+    return controller.autotracks_data_ready
+end
+
+function mode:onDraw( controller, eyepos, eyedir, empty )
+    if not IsValid( controller ) then
+        self:override( controller, false )
+        return
+    end
+    if not IsValid( controller.autotracks_chassis ) then
+        self:override( controller, false )
+        return
+    end
+
+    if controller.autotracks_chassis:IsDormant() then return end
+
+    controller:autotracks_setMatrix()
+    local pos, ang = controller:autotracks_getMatrix()
+
+    local dot = eyedir:Dot( pos - eyepos )
+    if dot < 0 and math.abs( dot ) > 100 then return end
+
+    if empty and self:updateTracks( controller, pos, ang ) then
+        render.SetBlend( 0 )
+        empty:SetPos( pos )
+        empty:SetAngles( ang )
+        empty:SetupBones()
+        empty:DrawModel()
+        render.SetBlend( 1 )
+
+        tanktracktool.autotracks.render( controller, controller.autotracks_matrix )
+    end
+end
+
+function ENT:autotracks_setMatrix()
+    self.autotracks_matrix = self.autotracks_chassis:GetWorldTransformMatrix()
+    if self.autotracks_rotate then
+        self.autotracks_matrix:Rotate( self.autotracks_rotate )
+    end
+end
+
+function ENT:autotracks_getMatrix()
+    if not self.autotracks_matrix then
+        return self.autotracks_chassis:GetPos(), self.autotracks_chassis:GetAngles()
+    end
+    return self.autotracks_matrix:GetTranslation(), self.autotracks_matrix:GetAngles()
+end
+
+function ENT:Think()
+    self.BaseClass.Think( self )
+
+    if self.tanktracktool_reset then
+        self.tanktracktool_reset = nil
+        mode:init( self )
+        return
+    end
+end
+
+function ENT:Draw()
+    self:DrawModel()
 end

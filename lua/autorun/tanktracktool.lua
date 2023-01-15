@@ -1,36 +1,109 @@
 
-tttlib = tttlib or {}
+tanktracktool = {}
 
 if SERVER then
+
     AddCSLuaFile( "tanktracktool/util.lua" )
-    AddCSLuaFile( "tanktracktool/tracks_mode.lua" )
-    AddCSLuaFile( "tanktracktool/tracks_mesh.lua" )
-    AddCSLuaFile( "tanktracktool/effects.lua" )
+    AddCSLuaFile( "tanktracktool/netvar.lua" )
+    AddCSLuaFile( "tanktracktool/property.lua" )
+
+    AddCSLuaFile( "tanktracktool/client/linker.lua" )
+    AddCSLuaFile( "tanktracktool/client/render/mode.lua" )
+    AddCSLuaFile( "tanktracktool/client/render/effects.lua" )
+    AddCSLuaFile( "tanktracktool/client/render/autotracks.lua" )
+
+    AddCSLuaFile( "tanktracktool/client/derma/editor/editor.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/node.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/node_category.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/array.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/bitfield.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/checkbox.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/color.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/combo.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/generic.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/instance.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/number.lua" )
+    AddCSLuaFile( "tanktracktool/client/derma/editor/controls/vector.lua" )
+
+    include( "tanktracktool/netvar.lua" )
+    include( "tanktracktool/property.lua" )
+
 end
 
 if CLIENT then
-    local disable = CreateClientConVar( "tanktracktool_disable", 0, true, false )
-    tttlib.RenderDisable = disable:GetBool()
-
-    cvars.AddChangeCallback( "tanktracktool_disable", function( name, old, new )
-        tttlib.RenderDisable = tobool( new )
-    end )
 
     include( "tanktracktool/util.lua" )
-    include( "tanktracktool/tracks_mode.lua" )
-    include( "tanktracktool/tracks_mesh.lua" )
-    include( "tanktracktool/effects.lua" )
+    include( "tanktracktool/netvar.lua" )
+    include( "tanktracktool/property.lua" )
 
-    tte_controllers = tte_controllers or {}
-    local tte_controllers = tte_controllers
+    include( "tanktracktool/client/linker.lua" )
+    include( "tanktracktool/client/render/mode.lua" )
+    include( "tanktracktool/client/render/effects.lua" )
+    include( "tanktracktool/client/render/autotracks.lua" )
 
-    hook.Add( "PostDrawTranslucentRenderables", "tanktracktool_tte_renderer", function()
-        if not next( tte_controllers ) then return end
+    include( "tanktracktool/client/derma/editor/editor.lua" )
+    include( "tanktracktool/client/derma/editor/node.lua" )
+    include( "tanktracktool/client/derma/editor/node_category.lua" )
+    include( "tanktracktool/client/derma/editor/controls/array.lua" )
+    include( "tanktracktool/client/derma/editor/controls/bitfield.lua" )
+    include( "tanktracktool/client/derma/editor/controls/checkbox.lua" )
+    include( "tanktracktool/client/derma/editor/controls/color.lua" )
+    include( "tanktracktool/client/derma/editor/controls/combo.lua" )
+    include( "tanktracktool/client/derma/editor/controls/generic.lua" )
+    include( "tanktracktool/client/derma/editor/controls/instance.lua" )
+    include( "tanktracktool/client/derma/editor/controls/number.lua" )
+    include( "tanktracktool/client/derma/editor/controls/vector.lua" )
 
-        for k, v in pairs( tte_controllers ) do
-            if v and IsValid( k ) then
-                k:tte_render()
+end
+
+do
+    local flags = { edit = 2, data = 4, link = 8 }
+    local bits = 0
+    local note = 0
+
+    tanktracktool.loud_edit = flags.edit
+    tanktracktool.loud_data = flags.data
+    tanktracktool.loud_link = flags.link
+
+    local c0 = Color( 255, 255, 0 )
+    local c1 = Color( 255, 255, 255 )
+
+    function tanktracktool.note( ... )
+        note = ( note + 1 ) % 64000
+        local msg = table.concat( { ... }, "\n" )
+        MsgC( c0, string.format( "tanktracktool[%d]", note ), "\n", c1, msg, "\n" )
+    end
+
+    function tanktracktool.loud( flag )
+        return bit.band( bits, flag ) == flag
+    end
+
+    local function setFlag( flag )
+        if not ( bit.band( bits, flag ) == flag ) then
+            bits =  bit.bor( bits, flag )
+        end
+    end
+
+    local function unsetFlag( flag )
+        if bit.band( bits, flag ) == flag then
+            bits = bit.band( bits, bit.bnot( flag ) )
+        end
+    end
+
+    concommand.Add( "tanktracktool_loud", function( ply, cmd, args )
+        if not args then bits = 0 return end
+
+        bits = 0
+        note = 0
+
+        local valid
+        for k, v in pairs( args ) do
+            if flags[v] then
+                setFlag( flags[v] )
+                valid = true
             end
         end
+
+        if not valid then bits = 0 end
     end )
 end

@@ -35,9 +35,10 @@ local _mmat_setTranslation, _mmat_setAngles =
 local cv_md = CreateClientConVar( "tanktracktool_detail_max", "8", true, false, "maximum track render quality", 4, 16 )
 local cv_ad = CreateClientConVar( "tanktracktool_detail_incr", "1", true, false, "enhance track render quality as speed increases" )
 
-local tttlib = tttlib
+local tanktracktool = tanktracktool
+tanktracktool.autotracks = tanktracktool.autotracks or {}
 
-function tttlib.tracks_textureList()
+function tanktracktool.autotracks.textureList()
     local ret = {}
     for k, v in SortedPairs( file.Find( string.format( "materials/%s/*.vtf", "tanktracktool/autotracks/" ), "GAME" ) ) do
         local name = string.StripExtension( string.GetFileFromFilename( v ) )
@@ -145,88 +146,88 @@ end
 
 
 --
-function tttlib.tracks_setup( self )
-    local values = self.ttdata_trackvalues
+function tanktracktool.autotracks.setup( self )
+    local values = self.autotracks_trackvalues
 
     local color = string.ToColor( values.trackColor )
-    self.ttdata_tracks_color = Vector( color.r / 255, color.g / 255, color.b / 255 )
+    self.autotracks_data_color = Vector( color.r / 255, color.g / 255, color.b / 255 )
 
-    self.ttdata_tracks_texture = createTrackTexture( values.trackMaterial )
-    self.ttdata_tracks_textureres = values.trackRes * values.trackWidth
-    self.ttdata_tracks_texturemap = 1 / self.ttdata_tracks_textureres
+    self.autotracks_data_texture = createTrackTexture( values.trackMaterial )
+    self.autotracks_data_textureres = values.trackRes * values.trackWidth
+    self.autotracks_data_texturemap = 1 / self.autotracks_data_textureres
 
-    self.ttdata_tracks_tension = 1 - values.trackTension
-    self.ttdata_tracks_tensor  = Vector( 0, 0, -self.ttdata_tracks_tension * 3 )
+    self.autotracks_data_tension = 1 - values.trackTension
+    self.autotracks_data_tensor  = Vector( 0, 0, -self.autotracks_data_tension * 3 )
 
     local side = 1
     if values.trackFlip ~= nil then
         if values.trackFlip ~= 0 then side = -1 else side = 1 end
     end
 
-    self.ttdata_tracks_model_le = trackverts_model( values.trackWidth, values.trackHeight, side, values.trackGuideY, values.trackGrouser )
-    self.ttdata_tracks_model_ri = trackverts_model( values.trackWidth, values.trackHeight, -side, values.trackGuideY, values.trackGrouser )
+    self.autotracks_data_model_le = trackverts_model( values.trackWidth, values.trackHeight, side, values.trackGuideY, values.trackGrouser )
+    self.autotracks_data_model_ri = trackverts_model( values.trackWidth, values.trackHeight, -side, values.trackGuideY, values.trackGrouser )
 
-    self.ttdata_tracks_modelcount_le = #self.ttdata_tracks_model_le
-    self.ttdata_tracks_modelcount_ri = #self.ttdata_tracks_model_ri
+    self.autotracks_data_modelcount_le = #self.autotracks_data_model_le
+    self.autotracks_data_modelcount_ri = #self.autotracks_data_model_ri
 
-    self.ttdata_tracks_height = values.trackHeight
+    self.autotracks_data_height = values.trackHeight
 
-    self.ttdata_tracks_nodes_ri = {}
-    self.ttdata_tracks_nodes_le = {}
-    self.ttdata_tracks_nodescount_ri = 0
-    self.ttdata_tracks_nodescount_le = 0
+    self.autotracks_data_nodes_ri = {}
+    self.autotracks_data_nodes_le = {}
+    self.autotracks_data_nodescount_ri = 0
+    self.autotracks_data_nodescount_le = 0
 
-    self.ttdata_tracks_verts_ri = {}
-    self.ttdata_tracks_verts_le = {}
-    self.ttdata_tracks_vertscount_ri = 0
-    self.ttdata_tracks_vertscount_le = 0
+    self.autotracks_data_verts_ri = {}
+    self.autotracks_data_verts_le = {}
+    self.autotracks_data_vertscount_ri = 0
+    self.autotracks_data_vertscount_le = 0
 
-    self.ttdata_tracks_normals_ri = {}
-    self.ttdata_tracks_normals_le = {}
+    self.autotracks_data_normals_ri = {}
+    self.autotracks_data_normals_le = {}
 
     local trackHeight = values.trackHeight * 0.5
-    for i = 1, #self.ttdata_parts do
-        local part = self.ttdata_parts[i][1]
+    for i = 1, #self.tanktracktool_modeData.parts do
+        local part = self.tanktracktool_modeData.parts[i][1]
 
         local trackRadius = part.radius + trackHeight
         part.trackRadius = trackRadius
         part.trackHeight = trackRadius + trackHeight + 0.1
     end
 
-    self.ttdata_tracks_ready = nil
+    self.autotracks_data_ready = nil
 end
 
 
 --
-function tttlib.tracks_think( self )
+function tanktracktool.autotracks.think( self )
     local min_detail = 6
     local max_detail = cv_md:GetInt()
     local adaptive_detail = cv_ad:GetBool()
 
     local tension_det = 2--math_ceil( tracknodesdetail / 2 )
     local tension_rad = ( 180 / tension_det ) * math_rad
-    local tension_val = self.ttdata_tracks_tension
-    local tension_dir = self.ttdata_tracks_tensor
+    local tension_val = self.autotracks_data_tension
+    local tension_dir = self.autotracks_data_tensor
 
-    local trackroots = self.ttdata_parts
-    local trackrootscount = #self.ttdata_parts
+    local trackroots = self.tanktracktool_modeData.parts
+    local trackrootscount = #trackroots
 
-    local isdouble = self.ttdata_isdouble and 2 or 1
+    local isdouble = self.autotracks_isdouble and 2 or 1
 
     if isdouble == 2 then
-        self.ttdata_ri_lastrot = self.ttdata_ri_lastrot - self.ttdata_ri_lastvel / self.ttdata_tracks_textureres
+        self.autotracks_ri_lastrot = self.autotracks_ri_lastrot - self.autotracks_ri_lastvel / self.autotracks_data_textureres
     end
-    self.ttdata_le_lastrot = self.ttdata_le_lastrot - self.ttdata_le_lastvel / self.ttdata_tracks_textureres
+    self.autotracks_le_lastrot = self.autotracks_le_lastrot - self.autotracks_le_lastvel / self.autotracks_data_textureres
 
     for i = 1, isdouble do
         local tracknodes, tracknodesdetail
 
         if i == 2 then
-            tracknodes = self.ttdata_tracks_nodes_ri
-            tracknodesdetail = adaptive_detail and ( min_detail + math_floor( math_abs( self.ttdata_ri_lastvel ) * 2 ) ) or max_detail
+            tracknodes = self.autotracks_data_nodes_ri
+            tracknodesdetail = adaptive_detail and ( min_detail + math_floor( math_abs( self.autotracks_ri_lastvel ) * 2 ) ) or max_detail
         else
-            tracknodes = self.ttdata_tracks_nodes_le
-            tracknodesdetail = adaptive_detail and ( min_detail + math_floor( math_abs( self.ttdata_le_lastvel ) * 2 ) ) or max_detail
+            tracknodes = self.autotracks_data_nodes_le
+            tracknodesdetail = adaptive_detail and ( min_detail + math_floor( math_abs( self.autotracks_le_lastvel ) * 2 ) ) or max_detail
         end
 
         if tracknodesdetail > max_detail then
@@ -328,30 +329,30 @@ function tttlib.tracks_think( self )
             rawset( tracknodes, tracknodescount + 1, rawget( tracknodes, 1 ) )
         end
 
-        if i == 2 then self.ttdata_tracks_nodescount_ri = tracknodescount else self.ttdata_tracks_nodescount_le = tracknodescount end
+        if i == 2 then self.autotracks_data_nodescount_ri = tracknodescount else self.autotracks_data_nodescount_le = tracknodescount end
     end
 
-    --local trackmodel = self.ttdata_tracks_model
-    --local trackmodelcount = self.ttdata_tracks_modelcount
-    local trackresolution = self.ttdata_tracks_texturemap
+    --local trackmodel = self.autotracks_data_model
+    --local trackmodelcount = self.autotracks_data_modelcount
+    local trackresolution = self.autotracks_data_texturemap
 
     for i = 1, isdouble do
         local trackmodel, trackmodelcount, tracknodes, tracknodescount, trackverts, tracknormals
 
         if i == 2 then
-            trackmodel = self.ttdata_tracks_model_ri
-            trackmodelcount = self.ttdata_tracks_modelcount_ri
-            tracknodes = self.ttdata_tracks_nodes_ri
-            tracknodescount = self.ttdata_tracks_nodescount_ri
-            trackverts = self.ttdata_tracks_verts_ri
-            tracknormals = self.ttdata_tracks_normals_ri
+            trackmodel = self.autotracks_data_model_ri
+            trackmodelcount = self.autotracks_data_modelcount_ri
+            tracknodes = self.autotracks_data_nodes_ri
+            tracknodescount = self.autotracks_data_nodescount_ri
+            trackverts = self.autotracks_data_verts_ri
+            tracknormals = self.autotracks_data_normals_ri
         else
-            trackmodel = self.ttdata_tracks_model_le
-            trackmodelcount = self.ttdata_tracks_modelcount_le
-            tracknodes = self.ttdata_tracks_nodes_le
-            tracknodescount = self.ttdata_tracks_nodescount_le
-            trackverts = self.ttdata_tracks_verts_le
-            tracknormals = self.ttdata_tracks_normals_le
+            trackmodel = self.autotracks_data_model_le
+            trackmodelcount = self.autotracks_data_modelcount_le
+            tracknodes = self.autotracks_data_nodes_le
+            tracknodescount = self.autotracks_data_nodescount_le
+            trackverts = self.autotracks_data_verts_le
+            tracknormals = self.autotracks_data_normals_le
         end
 
         local trackvertscount = 0
@@ -408,10 +409,10 @@ function tttlib.tracks_think( self )
             rawset( trackverts, trackvertscount, vertex )
         end
 
-        if i == 2 then self.ttdata_tracks_vertscount_ri = trackvertscount else self.ttdata_tracks_vertscount_le = trackvertscount end
+        if i == 2 then self.autotracks_data_vertscount_ri = trackvertscount else self.autotracks_data_vertscount_le = trackvertscount end
     end
 
-    self.ttdata_tracks_ready = true
+    self.autotracks_data_ready = true
 end
 
 
@@ -420,38 +421,38 @@ local matfallback = Material( "editor/wireframe" )
 local flip1 = Vector( -1, -1, 1 )
 local flip2 = Vector( 1, -1, 1 )
 
-function tttlib.tracks_render( self )
-    if not self.ttdata_tracks_ready then return end
+function tanktracktool.autotracks.render( self, matrix )
+    if not self.autotracks_data_ready then return end
 
-    cam.PushModelMatrix( self.ttdata_matrix or self:GetWorldTransformMatrix() )
+    cam.PushModelMatrix( matrix or self:GetWorldTransformMatrix() )
 
-    local texture = self.ttdata_tracks_texture
-    if texture and self.ttdata_tracks_color then
-        texture:SetVector( "$color2", self.ttdata_tracks_color )
+    local texture = self.autotracks_data_texture
+    if texture and self.autotracks_data_color then
+        texture:SetVector( "$color2", self.autotracks_data_color )
     end
 
-    for i = 1, self.ttdata_isdouble and 2 or 1 do
+    for i = 1, self.autotracks_isdouble and 2 or 1 do
         local tracknodes, tracknodescount, trackverts, trackvertscount, tracknormals, trackscroll
         local trackmodelcount
 
         if i == 2 then
-            tracknodes = self.ttdata_tracks_nodes_ri
-            tracknodescount = self.ttdata_tracks_nodescount_ri
-            trackverts = self.ttdata_tracks_verts_ri
-            trackvertscount = self.ttdata_tracks_vertscount_ri
-            tracknormals = self.ttdata_tracks_normals_ri
-            trackscroll = self.ttdata_ri_lastrot
+            tracknodes = self.autotracks_data_nodes_ri
+            tracknodescount = self.autotracks_data_nodescount_ri
+            trackverts = self.autotracks_data_verts_ri
+            trackvertscount = self.autotracks_data_vertscount_ri
+            tracknormals = self.autotracks_data_normals_ri
+            trackscroll = self.autotracks_ri_lastrot
 
-            trackmodelcount = self.ttdata_tracks_modelcount_ri
+            trackmodelcount = self.autotracks_data_modelcount_ri
         else
-            tracknodes = self.ttdata_tracks_nodes_le
-            tracknodescount = self.ttdata_tracks_nodescount_le
-            trackverts = self.ttdata_tracks_verts_le
-            trackvertscount = self.ttdata_tracks_vertscount_le
-            tracknormals = self.ttdata_tracks_normals_le
-            trackscroll = self.ttdata_le_lastrot
+            tracknodes = self.autotracks_data_nodes_le
+            tracknodescount = self.autotracks_data_nodescount_le
+            trackverts = self.autotracks_data_verts_le
+            trackvertscount = self.autotracks_data_vertscount_le
+            tracknormals = self.autotracks_data_normals_le
+            trackscroll = self.autotracks_le_lastrot
 
-            trackmodelcount = self.ttdata_tracks_modelcount_le
+            trackmodelcount = self.autotracks_data_modelcount_le
         end
 
         local modelvertexoffset = trackmodelcount - 1

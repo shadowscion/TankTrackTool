@@ -1,87 +1,135 @@
 
-if SERVER then AddCSLuaFile() end
+AddCSLuaFile()
 
-DEFINE_BASECLASS( "base_nme" )
+DEFINE_BASECLASS( "base_tanktracktool" )
 
-ENT.Author = "shadowscion"
-ENT.Category = "TankTrackTool"
+ENT.Type      = "anim"
 ENT.Spawnable = true
 ENT.AdminOnly = false
+ENT.Category  = "tanktracktool"
 
-local tte_vars = NeedMoreEdits.New()
+local tanktracktool = tanktracktool
 
-function ENT:SetupNME()
-    return tte_vars
+ENT.tanktracktool_linkerData = {
+    { name = "Entity1", bind = { KEY_E } },
+    { name = "Entity2", bind = { KEY_E } },
+}
+
+function ENT:netvar_setLinks( tbl, ply )
+    tbl = {
+        Entity1 = tbl.Entity1 or self.netvar.entities.Entity1,
+        Entity2 = tbl.Entity2 or self.netvar.entities.Entity2,
+    }
+    return tanktracktool.netvar.setLinks( self, tbl, ply )
 end
 
-function ENT:DefaultNME( update )
-    self:SetValueNME( update, "pointCount", nil, 7 )
-    self:SetValueNME( update, "pointSpread", nil, 4 )
-    self:SetValueNME( update, "pointStutter", nil, 0.15 )
-    self:SetValueNME( update, "pointDelay", nil, 0 )
-    self:SetValueNME( update, "pointSag", nil, 0 )
+if SERVER then
+    function ENT:netvar_nme( data )
+        return data
+    end
 
-    self:SetValueNME( update, "sourceEnable", nil, 1 )
-    self:SetValueNME( update, "sourceColor1", nil, "255 255 255 255" )
-    self:SetValueNME( update, "sourceColor2", nil, "255 0 0 255" )
-    self:SetValueNME( update, "sourceSize1", nil, 24 )
-    self:SetValueNME( update, "sourceSize2", nil, 64 )
+    function ENT:netvar_wireInputs()
+        return { "Disable", "Entity1 [ENTITY]", "Entity2 [ENTITY]", "Offset1 [VECTOR]", "Offset2 [VECTOR]" }
+    end
 
-    self:SetValueNME( update, "pointEnable", nil, 1 )
-    self:SetValueNME( update, "pointColor1", nil, "255 255 255 255" )
-    self:SetValueNME( update, "pointColor2", nil, "38 0 255 255" )
-    self:SetValueNME( update, "pointSize1", nil, 8 )
-    self:SetValueNME( update, "pointSize2", nil, 24 )
+    local function isnan( v ) return v.x ~= v.x or v.y ~= v.y or v.z ~= v.z end
+    local function clamp( v ) return Vector( math.Clamp( v.x, -16384, 16384 ), math.Clamp( v.y, -16384, 16384 ), math.Clamp( v.z, -16384, 16384 ) ) end
 
-    self:SetValueNME( update, "beamEnable", nil, 1 )
-    self:SetValueNME( update, "beamColor1", nil, "255 255 255 255" )
-    self:SetValueNME( update, "beamColor2", nil, "242 0 255 255" )
-    self:SetValueNME( update, "beamSize1", nil, 16 )
-    self:SetValueNME( update, "beamSize2", nil, 48 )
+    local inputs = {}
+    inputs.Disable = function( self, ply, value )
+        self:SetNW2Bool( "netwire_Disable", tobool( value ) )
+    end
+    inputs.Entity1 = function( self, ply, value )
+        if ply and not tanktracktool.netvar.canLink( value, ply ) then value = nil end
+        self:SetNW2Entity( "netwire_Entity1", value )
+    end
+    inputs.Entity2 = function( self, ply, value )
+        if ply and not tanktracktool.netvar.canLink( value, ply ) then value = nil end
+        self:SetNW2Entity( "netwire_Entity2", value )
+    end
+    inputs.Offset1 = function( self, ply, value )
+        if not isvector( value ) or isnan( value ) then value = nil else value = clamp( value ) end
+        self:SetNW2Vector( "netwire_Offset1", value )
+    end
+    inputs.Offset2 = function( self, ply, value )
+        if not isvector( value ) or isnan( value ) then value = nil else value = clamp( value ) end
+        self:SetNW2Vector( "netwire_Offset2", clamp( value ) )
+    end
 
-    self:SetValueNME( update, "particleEnable", nil, 1 )
-    self:SetValueNME( update, "particleColor", nil, "242 0 255 255" )
-    self:SetValueNME( update, "particleSize1", nil, 2 )
-    self:SetValueNME( update, "particleSize2", nil, 0 )
+    function ENT:TriggerInput( name, value )
+        if inputs[name] then inputs[name]( self, WireLib and WireLib.GetOwner( self ), value ) end
+    end
 end
 
+local netvar = tanktracktool.netvar.new()
 
-tte_vars:Category( "Setup" )
-tte_vars:Var( "pointCount", "Int", { min = 2, max = 20, def = 5, title = "point count" } )
-tte_vars:Var( "pointSpread", "Float", { min = 0, max = 64, def = 1, title = "randomize point spread" } )
-tte_vars:Var( "pointStutter", "Float", { min = 0, max = 1, def = 0, title = "randomize point missfire" } )
-tte_vars:Var( "pointMulti", "Int", { min = 1, max = 4, def = 1, title = "beam count" } )
-tte_vars:Var( "pointDelay", "Float", { min = 0, max = 1, def = 0, title = "beam velocity delay" } )
-tte_vars:Var( "pointSag", "Float", { min = 0, max = 1, def = 0, title = "beam sag percent" } )
-tte_vars:Var( "pointTrace", "Bool", { def = 0, title = "enable beam intersection" } )
+local default = {
+    pointCount = 7,
+    pointSpread = 4,
+    pointStutter = 0.15,
+    pointDelay = 0,
+    pointSag = 0,
 
+    sourceEnable = 1,
+    sourceColor1 = "255 255 255 255",
+    sourceColor2 = "255 0 0 255",
+    sourceSize1 = 24,
+    sourceSize2 = 64,
 
-tte_vars:Category( "source" )
-tte_vars:Var( "sourceEnable", "Bool", { def = 1, title = "enabled" } )
-tte_vars:Var( "sourceSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-tte_vars:Var( "sourceColor1", "Color", { def = "", title = "inner color" } )
-tte_vars:Var( "sourceSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-tte_vars:Var( "sourceColor2", "Color", { def = "", title = "outer color" } )
+    pointEnable = 1,
+    pointColor1 = "255 255 255 255",
+    pointColor2 = "38 0 255 255",
+    pointSize1 = 8,
+    pointSize2 = 24,
 
+    beamEnable = 1,
+    beamColor1 = "255 255 255 255",
+    beamColor2 = "242 0 255 255",
+    beamSize1 = 16,
+    beamSize2 = 48,
 
-tte_vars:Category( "Point" )
-tte_vars:Var( "pointEnable", "Bool", { def = 1, title = "enabled" } )
-tte_vars:Var( "pointSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-tte_vars:Var( "pointColor1", "Color", { def = "", title = "inner color" } )
-tte_vars:Var( "pointSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-tte_vars:Var( "pointColor2", "Color", { def = "", title = "outer color" } )
+    particleEnable = 1,
+    particleColor = "242 0 255 255",
+    particleSize1 = 2,
+    particleSize2 = 0,
+}
 
+function ENT:netvar_setup()
+    return netvar, default
+end
 
-tte_vars:Category( "Beam" )
-tte_vars:Var( "beamEnable", "Bool", { def = 1, title = "enabled" } )
-tte_vars:Var( "beamSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
-tte_vars:Var( "beamColor1", "Color", { def = "", title = "inner color" } )
-tte_vars:Var( "beamSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
-tte_vars:Var( "beamColor2", "Color", { def = "", title = "outer color" } )
-tte_vars:Var( "beamMaterial", "Combo", { def = "tripmine_laser", title = "material" } )
+netvar:category( "Setup" )
+netvar:var( "pointCount", "Int", { min = 2, max = 20, def = 5, title = "point count" } )
+netvar:var( "pointSpread", "Float", { min = 0, max = 64, def = 1, title = "randomize point spread" } )
+netvar:var( "pointStutter", "Float", { min = 0, max = 1, def = 0, title = "randomize point missfire" } )
+netvar:var( "pointMulti", "Int", { min = 1, max = 4, def = 1, title = "beam count" } )
+netvar:var( "pointDelay", "Float", { min = 0, max = 1, def = 0, title = "beam velocity delay" } )
+netvar:var( "pointSag", "Float", { min = 0, max = 1, def = 0, title = "beam sag percent" } )
+netvar:var( "pointTrace", "Bool", { def = 0, title = "enable beam intersection" } )
 
+netvar:category( "source" )
+netvar:var( "sourceEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "sourceSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+netvar:var( "sourceColor1", "Color", { def = "", title = "inner color" } )
+netvar:var( "sourceSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+netvar:var( "sourceColor2", "Color", { def = "", title = "outer color" } )
 
-local edit = tte_vars:GetVar( "beamMaterial" ).edit
+netvar:category( "Point" )
+netvar:var( "pointEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "pointSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+netvar:var( "pointColor1", "Color", { def = "", title = "inner color" } )
+netvar:var( "pointSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+netvar:var( "pointColor2", "Color", { def = "", title = "outer color" } )
+
+netvar:category( "Beam" )
+netvar:var( "beamEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "beamSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+netvar:var( "beamColor1", "Color", { def = "", title = "inner color" } )
+netvar:var( "beamSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+netvar:var( "beamColor2", "Color", { def = "", title = "outer color" } )
+netvar:var( "beamMaterial", "Combo", { def = "tripmine_laser", title = "material" } )
+
+local edit = netvar:get( "beamMaterial" ).data
 edit.values = {
     ["tripmine_laser"] = 1,
     ["trails/electric"] = 2,
@@ -89,492 +137,394 @@ edit.values = {
     ["trails/plasma"] = 4,
     ["cable/cable2"] = 5,
 }
+if CLIENT then
+    edit.images = {
+        ["tripmine_laser"] = "tripmine_laser",
+        ["trails/electric"] = "trails/electric",
+        ["trails/physbeam"] = "trails/physbeam",
+        ["trails/plasma"] = "trails/plasma",
+        ["cable/cable2"] = "cable/cable2",
+    }
+end
 
+netvar:category( "particle" )
+netvar:var( "particleEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "particleSize1", "Float", { min = 0, max = 64, def = 12, title = "start size" } )
+netvar:var( "particleSize2", "Float", { min = 0, max = 64, def = 12, title = "end size" } )
+netvar:var( "particleColor", "Color", { def = "", title = "color" } )
+netvar:var( "particleMaterial", "Combo", { def = "effects/spark", title = "material" } )
 
-tte_vars:Category( "particle" )
-tte_vars:Var( "particleEnable", "Bool", { def = 1, title = "enabled" } )
-tte_vars:Var( "particleSize1", "Float", { min = 0, max = 64, def = 12, title = "start size" } )
-tte_vars:Var( "particleSize2", "Float", { min = 0, max = 64, def = 12, title = "end size" } )
-tte_vars:Var( "particleColor", "Color", { def = "", title = "color" } )
-tte_vars:Var( "particleMaterial", "Combo", { def = "effects/spark", title = "material" } )
-
-local edit = tte_vars:GetVar( "particleMaterial" ).edit
+local edit = netvar:get( "particleMaterial" ).data
 edit.values = {
     ["effects/spark"] = 1,
 }
-
-
 if CLIENT then
-
-    local pairs, math, util, cam, render, IsValid, LerpVector, VectorRand =
-          pairs, math, util, cam, render, IsValid, LerpVector, VectorRand
-
-    local pi = math.pi
-
-    local tte_controllers = tte_controllers
-
-    local matbeam = Material( "tripmine_laser" )
-    local matpoint = Material( "sprites/gmdm_pickups/light" )
-
-    function ENT:TriggerNME(type, ...)
-        if type == "editor_open" or type == "editor_close" then
-            local editor = select( 1, ... )
-            if IsValid( editor ) then
-                editor.DTree.RootNode:ExpandRecurse( true )
-            end
-        else
-            self.tte_reset = true
-        end
-    end
-
-    do
-        local _grey = Color(255, 255, 255, 150)
-        local _red = Color(255, 0, 0, 150)
-        local _grn = Color(0, 255, 0, 150)
-        local _blu = Color(0, 0, 255, 150)
-
-        function ENT:OverlayNME( hoveredNode )
-            local e1 = self:GetNW2Entity( "beamEntity1", self )
-            local e2 = self:GetNW2Entity( "beamEntity2", self )
-
-            if not IsValid( e1 ) then e1 = self end
-            if not IsValid( e2 ) then e2 = self end
-
-            local pos = e1:GetPos()
-            local off = e1:LocalToWorld( self:GetNW2Vector( "beamOffset1" ), Vector() )
-
-            cam.Start3D()
-                render.DrawLine( pos, pos + e1:GetRight(), _red )
-                render.DrawLine( pos, pos + e1:GetForward() * 6, _grn )
-                render.DrawLine( pos, pos + e1:GetUp() * 6, _blu )
-                render.DrawLine( pos, off, _grey )
-            cam.End3D()
-
-            pos = pos:ToScreen()
-            draw.SimpleText( "Entity1", "DermaDefault", pos.x, pos.y, _grey, 1, 1 )
-            off = off:ToScreen()
-            draw.SimpleText( "Offset1", "DermaDefault", off.x, off.y, _grey, 1, 1 )
-
-            local pos = e2:GetPos()
-            local off = e2:LocalToWorld( self:GetNW2Vector( "beamOffset2" ), Vector() )
-
-            cam.Start3D()
-                render.DrawLine( pos, pos + e2:GetRight(), _red )
-                render.DrawLine( pos, pos + e2:GetForward() * 6, _grn )
-                render.DrawLine( pos, pos + e2:GetUp() * 6, _blu )
-                render.DrawLine( pos, off, _grey )
-            cam.End3D()
-
-            pos = pos:ToScreen()
-            draw.SimpleText( "Entity2", "DermaDefault", pos.x, pos.y, _grey, 1, 1 )
-            off = off:ToScreen()
-            draw.SimpleText( "Offset2", "DermaDefault", off.x, off.y, _grey, 1, 1 )
-        end
-    end
-
-    function ENT:Initialize()
-        self.BaseClass.Initialize( self )
-    end
-
-    function ENT:Draw()
-        self:DrawModel()
-    end
-
-    function ENT:Think()
-        self.BaseClass.Think( self )
-
-        if self.tte_reset then
-            self.tte_reset = nil
-            self:tte_update()
-        end
-
-        self:tte_think()
-    end
-
-    function ENT:OnRemove()
-        self.tte_reset = true
-
-        timer.Simple( 0, function()
-            if ( self and self:IsValid() ) then
-                return
-            end
-
-            tte_controllers[self] = nil
-        end )
-    end
-
-    function ENT:tte_visible()
-        if FrameTime() == 0 or self:GetNW2Bool( "beamDisable", false ) then return false end -- gui.IsConsoleVisible()
-
-        return true
-    end
-
-    function ENT:tte_render()
-        if not self.tte_ready then
-            return
-        end
-
-        for i = 1, #self.tte_beams do
-            local beam = self.tte_beams[i]
-            local data = beam.data
-
-            local points = beam.points
-            local count = #points
-
-            if data.sourceEnable then
-                render.SetMaterial( matpoint )
-
-                render.DrawSprite( points[1], data.sourceSize1, data.sourceSize1, data.sourceColor1 )
-                render.DrawSprite( points[1], data.sourceSize2, data.sourceSize2, data.sourceColor2 )
-
-                if not data.split then
-                    render.DrawSprite( points[count], data.sourceSize1, data.sourceSize1, data.sourceColor1 )
-                    render.DrawSprite( points[count], data.sourceSize2, data.sourceSize2, data.sourceColor2 )
-                end
-            end
-
-            if data.pointEnable then
-                render.SetMaterial( matpoint )
-
-                for j = 1, count do
-                    render.DrawSprite( points[j], data.pointSize1, data.pointSize1, data.pointColor1 )
-                    render.DrawSprite( points[j], data.pointSize2, data.pointSize2, data.pointColor2 )
-                end
-            end
-
-            if data.beamEnable then
-                render.SetMaterial( data.beamMaterial or matbeam )
-
-                local v1 = points[1]
-                local v2 = points[2]
-
-                for i = 1, count - 1 do
-                    render.DrawBeam( v1, v2, data.beamSize1, 0, 1, data.beamColor1 )
-                    render.DrawBeam( v1, v2, data.beamSize2, 0, 1, data.beamColor2 )
-
-                    v1 = points[i + 1]
-                    v2 = points[i + 2]
-                end
-            end
-        end
-
-    end
-
-    local emitter = ParticleEmitter( Vector() )
-    local gravity = Vector()
-
-    local function CreateBeam( self, ent1, ent2, pos1, pos2, data, fx )
-        local beam = { this = self, ent1 = ent1, ent2 = ent2, points = {}, data = data }
-
-        local min_length
-        if data.pointSag then
-            min_length = -pos1:Distance( pos2 ) * data.pointSag * 0.5
-        end
-
-        for i = 1, data.pointCount do
-            local t = ( i - 1 ) / ( data.pointCount - 1 )
-            local r = math.sin( t * pi )
-
-            local pos = LerpVector( t, pos1, pos2 )
-
-            if data.pointSpread then
-                pos:Add( VectorRand( -r * data.pointSpread, r * data.pointSpread ) )
-            end
-
-            if data.pointDelay then
-                pos:Add( data.velocity * r )
-            end
-
-            if min_length then
-                gravity.z = min_length * r
-                pos:Add( gravity )
-            end
-
-            beam.points[i] = pos
-        end
-
-        if fx then
-            fx:SetOrigin( pos2 )
-            fx:SetNormal( pos1 - pos2 )
-
-            util.Effect( "AR2Impact", fx )
-        end
-
-        if data.particleEnable and emitter and math.random( 0, 100 ) > 50 then
-            local index = math.random( 1, data.pointCount )
-            local particle = emitter:Add( data.particleMaterial, beam.points[index] )
-
-            if particle then
-                particle:SetDieTime( 0.5 )
-                particle:SetStartAlpha( 255 )
-                particle:SetEndAlpha( 0 )
-                particle:SetStartSize( math.Rand( data.particleSize1 * 0.5, data.particleSize1 ) )
-                particle:SetEndSize( data.particleSize2 )
-                particle:SetColor( data.particleColor.r, data.particleColor.g, data.particleColor.b )
-
-                gravity.z = -( 25 + 250 * math.sin( ( index / data.pointCount ) * pi ) )
-
-                particle:SetGravity( gravity )
-            end
-        end
-
-        self.tte_beams[#self.tte_beams + 1] = beam
-    end
-
-    function ENT:tte_think()
-        if not tte_controllers[self] then
-            self.tte_reset = true
-            return
-        end
-
-        self.tte_ready = nil
-
-        if not self:tte_visible() or ( not self.tte_data.sourceEnable and not self.tte_data.pointEnable and not self.tte_data.beamEnable ) then return end
-        if self.tte_data.randomDisable and math.random( 0, 100 ) >  self.tte_data.randomDisable then return end
-
-        local ent1 = self:GetNW2Entity( "beamEntity1", self )
-        local ent2 = self:GetNW2Entity( "beamEntity2", self )
-
-        if not IsValid( ent1 ) then ent1 = self end
-        if not IsValid( ent2 ) then ent2 = self end
-
-        local pos1 = ent1:LocalToWorld( self:GetNW2Vector( "beamOffset1" ), Vector() )
-        local pos2 = ent2:LocalToWorld( self:GetNW2Vector( "beamOffset2" ), Vector() )
-
-        if self.tte_data.pointDelay then
-            self.tte_data.velocity = Lerp( self.tte_data.pointDelay, self.tte_data.velocity or Vector(), ( ent1:GetVelocity() + ent2:GetVelocity() ) * -0.01 )
-        end
-
-        self.tte_beams = {}
-        self.tte_data.split = nil
-
-        if self.tte_data.pointTrace then
-            local hit1 = util.TraceLine( { start = pos1, endpos = pos2, filter = { self, ent1, ent2 } } )
-            local hit2 = util.TraceLine( { start = pos2, endpos = pos1, filter = { self, ent1, ent2 } } )
-
-            local multi = self.tte_data.pointMulti
-
-            if IsValid( hit1.Entity ) then
-                local fx = EffectData()
-
-                if hit1.Entity:IsPlayer() then
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.HitPos, self.tte_data, fx ) end
-                else
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, hit1.Entity:NearestPoint( pos1 ), self.tte_data, fx ) end
-                end
-
-                self.tte_data.split = true
-            end
-
-            if IsValid( hit2.Entity ) then
-                local fx = EffectData()
-
-                if hit2.Entity:IsPlayer() then
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.HitPos, self.tte_data, fx ) end
-                else
-                    for i = 1, multi do CreateBeam( self, ent1, ent2, pos2, hit2.Entity:NearestPoint( pos2 ), self.tte_data, fx ) end
-                end
-
-                self.tte_data.split = true
-            end
-
-            if not self.tte_data.split then
-                for i = 1, multi do CreateBeam( self, ent1, ent2, pos1, pos2, self.tte_data ) end
-            end
-        else
-            for i = 1, self.tte_data.pointMulti do CreateBeam( self, ent1, ent2, pos1, pos2, self.tte_data ) end
-        end
-
-        self.tte_ready = true
-    end
-
-    function ENT:tte_update()
-        local info = self.NMEVals
-        local data = {}
-
-        data.pointCount = math.abs( info.pointCount or 10 )
-        data.pointMulti = math.Clamp( info.pointMulti or 1, 1, 4 )
-        data.pointTrace = tobool( info.pointTrace )
-
-        local randomDisable = tonumber( info.pointStutter )
-        if randomDisable > 0 and randomDisable < 1 then
-            data.randomDisable = 100 - randomDisable * 100
-        else
-            data.randomDisable = nil
-        end
-
-        data.pointDelay = tonumber( info.pointDelay )
-        if data.pointDelay > 0 then
-            data.pointVelocity = Vector()
-            data.pointDelay = data.pointDelay
-        else
-            data.pointDelay = nil
-        end
-
-        data.pointSpread = tonumber( info.pointSpread )
-        if data.pointSpread == 0 then
-            data.pointSpread = nil
-        end
-
-        data.pointSag = tonumber( info.pointSag )
-        if data.pointSag == 0 then
-            data.pointSag = nil
-        end
-
-        data.pointEnable = tobool( info.pointEnable )
-        if data.pointEnable then
-            data.pointSize1 = math.abs( info.pointSize1 or 16 )
-            data.pointSize2 = math.abs( info.pointSize2 or 16 )
-            data.pointColor1 = string.ToColor( info.pointColor1 or "" )
-            data.pointColor2 = string.ToColor( info.pointColor2 or "" )
-        end
-
-        data.beamEnable = tobool( info.beamEnable )
-        if data.beamEnable then
-            data.beamSize1 = math.abs( info.beamSize1 or 16 )
-            data.beamSize2 = math.abs( info.beamSize2 or 16 )
-            data.beamColor1 = string.ToColor( info.beamColor1 or "" )
-            data.beamColor2 = string.ToColor( info.beamColor2 or "" )
-            data.beamMaterial = Material( info.beamMaterial )
-        end
-
-        data.sourceEnable = tobool( info.sourceEnable )
-        if data.sourceEnable then
-            data.sourceSize1 = math.abs( info.sourceSize1 or 16 )
-            data.sourceSize2 = math.abs( info.sourceSize2 or 16 )
-            data.sourceColor1 = string.ToColor( info.sourceColor1 or "" )
-            data.sourceColor2 = string.ToColor( info.sourceColor2 or "" )
-        end
-
-        data.particleEnable = tobool( info.particleEnable )
-        if data.particleEnable then
-            data.particleSize1 = math.abs( info.particleSize1 or 16 )
-            data.particleSize2 = math.abs( info.particleSize2 or 16 )
-            data.particleColor = string.ToColor( info.particleColor or "" )
-            data.particleMaterial = info.particleMaterial or "effects/spark"
-        end
-
-        self.tte_data = data
-
-        tte_controllers[self] = true
-    end
-
-    function ENT:tte_remove()
-        tte_controllers[self] = nil
-    end
-
+    edit.images = {
+        ["effects/spark"] = "effects/spark",
+    }
+end
+
+if SERVER then return end
+
+local math, util, string, table, render =
+      math, util, string, table, render
+
+local next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector =
+      next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector
+
+local pi = math.pi
+
+
+--[[
+    editor callbacks
+]]
+netvar:get( "sourceEnable" ).data.hook = function( inner, val )
+    local editor = inner.m_Editor
+    local enabled = tobool( val )
+
+    editor.Variables.sourceSize1:SetEnabled( enabled )
+    editor.Variables.sourceSize2:SetEnabled( enabled )
+    editor.Variables.sourceColor1:SetEnabled( enabled )
+    editor.Variables.sourceColor2:SetEnabled( enabled )
+end
+netvar:get( "pointEnable" ).data.hook = function( inner, val )
+    local editor = inner.m_Editor
+    local enabled = tobool( val )
+
+    editor.Variables.pointSize1:SetEnabled( enabled )
+    editor.Variables.pointSize2:SetEnabled( enabled )
+    editor.Variables.pointColor1:SetEnabled( enabled )
+    editor.Variables.pointColor2:SetEnabled( enabled )
+end
+netvar:get( "beamEnable" ).data.hook = function( inner, val )
+    local editor = inner.m_Editor
+    local enabled = tobool( val )
+
+    editor.Variables.beamSize1:SetEnabled( enabled )
+    editor.Variables.beamSize2:SetEnabled( enabled )
+    editor.Variables.beamColor1:SetEnabled( enabled )
+    editor.Variables.beamColor2:SetEnabled( enabled )
+    editor.Variables.beamMaterial:SetEnabled( enabled )
+end
+netvar:get( "particleEnable" ).data.hook = function( inner, val )
+    local editor = inner.m_Editor
+    local enabled = tobool( val )
+
+    editor.Variables.particleSize1:SetEnabled( enabled )
+    editor.Variables.particleSize2:SetEnabled( enabled )
+    editor.Variables.particleColor:SetEnabled( enabled )
+    editor.Variables.particleMaterial:SetEnabled( enabled )
 end
 
 
-if SERVER then
+--[[
+    netvar hooks
+]]
+local hooks = {}
 
-    function ENT:SpawnFunction( ply, tr, class )
-        if not tr.Hit then return end
+hooks.editor_open = function( self, editor )
+    for k, cat in pairs( editor.Categories ) do
+        cat:SetExpanded( true )
+    end
+end
 
-        local ent = ents.Create( class )
-        ent:SetModel( "models/hunter/plates/plate.mdl" )
-        ent:SetPos( tr.HitPos + tr.HitNormal * 40 )
-        ent:Spawn()
-        ent:Activate()
+hooks.netvar_set = function( self ) self.tanktracktool_reset = true end
+hooks.netvar_syncLink = function( self ) self.tanktracktool_reset = true end
+hooks.netvar_syncData = function( self ) self.tanktracktool_reset = true end
 
-        local phys = ent:GetPhysicsObject()
-        if IsValid( phys ) then
-            phys:EnableMotion( false )
-            phys:Wake()
-        end
+function ENT:netvar_callback( id, ... )
+    if hooks[id] then hooks[id]( self, ... ) end
+end
 
-        return ent
+
+--[[
+]]
+local mode = tanktracktool.render.mode()
+
+function mode:onInit( controller )
+    self:override( controller, true )
+
+    local data = self:getData( controller )
+
+    data.vars = controller:netvar_getValues()
+    data.ents = controller:netvar_getLinks()
+
+    data.pointCount = math.abs( data.vars.pointCount or 10 )
+    data.pointMulti = math.Clamp( data.vars.pointMulti or 1, 1, 4 )
+    data.pointTrace = tobool( data.vars.pointTrace )
+
+    local randomDisable = tonumber( data.vars.pointStutter )
+    if randomDisable > 0 and randomDisable < 1 then
+        data.randomDisable = 100 - randomDisable * 100
+    else
+        data.randomDisable = nil
     end
 
-    function ENT:Initialize()
-        self.BaseClass.Initialize( self )
-
-        self:PhysicsInit( SOLID_VPHYSICS )
-        self:SetMoveType( MOVETYPE_VPHYSICS )
-        self:SetSolid( SOLID_VPHYSICS )
-
-        if Wire_CreateInputs then
-            self.Inputs = Wire_CreateInputs( self, { "Disable", "Entity1 [ENTITY]", "Entity2 [ENTITY]", "Offset1 [VECTOR]", "Offset2 [VECTOR]" } )
-        end
+    data.pointDelay = tonumber( data.vars.pointDelay )
+    if data.pointDelay > 0 then
+        data.pointVelocity = Vector()
+        data.pointDelay = data.pointDelay
+    else
+        data.pointDelay = nil
     end
 
-    -- Wiremod Stuff
-    local inputTriggers = {
-        Disable = function( self, iname, ivalue, src )
-            self:SetNW2Bool( "beamDisable", ivalue )
-        end,
-        Entity1 = function( self, iname, ivalue, src )
-            self:SetNW2Entity( "beamEntity1", ivalue )
-        end,
-        Entity2 = function( self, iname, ivalue, src )
-            self:SetNW2Entity( "beamEntity2", ivalue )
-        end,
-        Offset1 = function( self, iname, ivalue, src )
-            self:SetNW2Vector( "beamOffset1", ivalue )
-        end,
-        Offset2 = function( self, iname, ivalue, src )
-            self:SetNW2Vector( "beamOffset2", ivalue )
-        end,
+    data.pointSpread = tonumber( data.vars.pointSpread )
+    if data.pointSpread == 0 then
+        data.pointSpread = nil
+    end
+
+    data.pointSag = tonumber( data.vars.pointSag )
+    if data.pointSag == 0 then
+        data.pointSag = nil
+    end
+
+    data.pointEnable = tobool( data.vars.pointEnable )
+    if data.pointEnable then
+        data.pointSize1 = math.abs( data.vars.pointSize1 or 16 )
+        data.pointSize2 = math.abs( data.vars.pointSize2 or 16 )
+        data.pointColor1 = string.ToColor( data.vars.pointColor1 or "" )
+        data.pointColor2 = string.ToColor( data.vars.pointColor2 or "" )
+        data.pointMaterial = Material( "sprites/gmdm_pickups/light" )
+    end
+
+    data.beamEnable = tobool( data.vars.beamEnable )
+    if data.beamEnable then
+        data.beamSize1 = math.abs( data.vars.beamSize1 or 16 )
+        data.beamSize2 = math.abs( data.vars.beamSize2 or 16 )
+        data.beamColor1 = string.ToColor( data.vars.beamColor1 or "" )
+        data.beamColor2 = string.ToColor( data.vars.beamColor2 or "" )
+        data.beamMaterial = Material( data.vars.beamMaterial )
+    end
+
+    data.sourceEnable = tobool( data.vars.sourceEnable )
+    if data.sourceEnable then
+        data.sourceSize1 = math.abs( data.vars.sourceSize1 or 16 )
+        data.sourceSize2 = math.abs( data.vars.sourceSize2 or 16 )
+        data.sourceColor1 = string.ToColor( data.vars.sourceColor1 or "" )
+        data.sourceColor2 = string.ToColor( data.vars.sourceColor2 or "" )
+        data.sourceMaterial = Material( "sprites/gmdm_pickups/light" )
+    end
+
+    data.particleEnable = tobool( data.vars.particleEnable )
+    if data.particleEnable then
+        data.particleSize1 = math.abs( data.vars.particleSize1 or 16 )
+        data.particleSize2 = math.abs( data.vars.particleSize2 or 16 )
+        data.particleColor = string.ToColor( data.vars.particleColor or "" )
+        data.particleMaterial = data.vars.particleMaterial or "effects/spark"
+    end
+
+    data.beams = {}
+end
+
+local function GetEntity( self, netkey, netlink )
+    if netkey then netkey = self:GetNW2Entity( netkey ) end
+    if IsValid( netkey ) then return netkey else
+        return IsValid( netlink ) and netlink or self
+    end
+end
+
+local emitter = ParticleEmitter( Vector() )
+local gravity = Vector()
+
+local function CreateBeam( controller, ent1, ent2, pos1, pos2, data, fx )
+    local beam = {
+        ent0 = controller,
+        ent1 = ent1,
+        ent2 = ent2,
+        pos1 = pos1,
+        pos2 = pos2,
+        data = data,
+        points = {},
     }
 
-    function ENT:TriggerInput( iname, ivalue, ... )
-        if inputTriggers[iname] then
-            inputTriggers[iname]( self, iname, ivalue )
+    local min_length
+    if data.pointSag then
+        min_length = -pos1:Distance( pos2 ) * data.pointSag * 0.5
+    end
+
+    for i = 1, data.pointCount do
+        local t = ( i - 1 ) / ( data.pointCount - 1 )
+        local r = math.sin( t * pi )
+
+        local pos = LerpVector( t, pos1, pos2 )
+
+        if data.pointSpread then
+            pos:Add( VectorRand( -r * data.pointSpread, r * data.pointSpread ) )
+        end
+
+        if data.pointDelay then
+            pos:Add( data.velocity * r )
+        end
+
+        if min_length then
+            gravity.z = min_length * r
+            pos:Add( gravity )
+        end
+
+        beam.points[i] = pos
+    end
+
+    if fx then
+        fx:SetOrigin( pos2 )
+        fx:SetNormal( pos1 - pos2 )
+
+        util.Effect( "AR2Impact", fx )
+    end
+
+    if data.particleEnable and emitter and math.random( 0, 100 ) > 50 then
+        local index = math.random( 1, data.pointCount )
+        local particle = emitter:Add( data.particleMaterial, beam.points[index] )
+
+        if particle then
+            particle:SetDieTime( 0.5 )
+            particle:SetStartAlpha( 255 )
+            particle:SetEndAlpha( 0 )
+            particle:SetStartSize( math.Rand( data.particleSize1 * 0.5, data.particleSize1 ) )
+            particle:SetEndSize( data.particleSize2 )
+            particle:SetColor( data.particleColor.r, data.particleColor.g, data.particleColor.b )
+
+            gravity.z = -( 25 + 250 * math.sin( ( index / data.pointCount ) * pi ) )
+
+            particle:SetGravity( gravity )
         end
     end
 
-    function ENT:OnRemove()
-        if WireLib then WireLib.Remove( self ) end
+    return beam
+end
+
+function mode:onThink( controller )
+    local data = self:getData( controller )
+
+    if data.randomDisable and math.random( 0, 100 ) > data.randomDisable then
+        data.beams = {}
+        return
     end
 
-    function ENT:OnRestore()
-        if WireLib then WireLib.Restored( self)  end
+    local ent1 = GetEntity( controller, "netwire_Entity1", data.ents.Entity1 )
+    local ent2 = GetEntity( controller, "netwire_Entity2", data.ents.Entity2 )
+    local pos1 = ent1:LocalToWorld( controller:GetNW2Vector( "netwire_Offset1" ), Vector() )
+    local pos2 = ent2:LocalToWorld( controller:GetNW2Vector( "netwire_Offset2" ), Vector() )
+
+    -- local dir = pos2 - pos1
+    -- local len = dir:Length()
+
+    -- local plus = controller:GetNW2Bool( "netwire_Disable" ) and 1 or -1
+    -- data.frac = math.Clamp( ( data.frac or 0 ) + FrameTime() * plus, 0, 1 )
+
+    -- if data.frac == 0 then
+    --     data.beams = {}
+    --     return
+    -- end
+
+    -- pos2 = pos1 + dir:GetNormalized() * len * data.frac
+
+    if data.pointDelay then
+        data.velocity = LerpVector( data.pointDelay, data.velocity or Vector(), ( ent1:GetVelocity() + ent2:GetVelocity() ) * -0.01 )
     end
 
-    function ENT:BuildDupeInfo()
-        return WireLib and WireLib.BuildDupeInfo( self )
+    local beams = {}
+    data.split = nil
+
+    if data.pointTrace then
+        local hit1 = util.TraceLine( { start = pos1, endpos = pos2, filter = { controller, ent1, ent2 } } )
+        local hit2 = util.TraceLine( { start = pos2, endpos = pos1, filter = { controller, ent1, ent2 } } )
+
+        local multi = data.pointMulti
+
+        if IsValid( hit1.Entity ) then
+            local fx = EffectData()
+
+            if hit1.Entity:IsPlayer() then
+                for i = 1, multi do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos1, hit1.HitPos, data, fx ) end
+            else
+                for i = 1, multi do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos1, hit1.Entity:NearestPoint( pos1 ), data, fx ) end
+            end
+
+            data.split = true
+        end
+
+        if IsValid( hit2.Entity ) then
+            local fx = EffectData()
+
+            if hit2.Entity:IsPlayer() then
+                for i = 1, multi do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos2, hit2.HitPos, data, fx ) end
+            else
+                for i = 1, multi do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos2, hit2.Entity:NearestPoint( pos2 ), data, fx ) end
+            end
+
+            data.split = true
+        end
+
+        if not data.split then
+            for i = 1, multi do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos1, pos2, data ) end
+        end
+    else
+        for i = 1, data.pointMulti do beams[#beams + 1] = CreateBeam( controller, ent1, ent2, pos1, pos2, data ) end
     end
 
-    function ENT:ApplyDupeInfo( ply, ent, info, GetEntByID )
-        if WireLib then WireLib.ApplyDupeInfo( ply, ent, info, GetEntByID ) end
-    end
+    data.beams = beams
+end
 
-    function ENT:PreEntityCopy()
-        self.BaseClass.PreEntityCopy( self )
+function mode:onDraw( controller, eyepos, eyedir, empty )
+    local data = self:getData( controller )
+    local beams = data.beams
 
-        duplicator.ClearEntityModifier( self, "WireDupeInfo" )
+    for k = 1, #beams do
+        local beam = beams[k]
+        local beamData = beam.data
+        local beamPoints = beam.points
+        local beamPointsCount = #beamPoints
 
-        local DupeInfo = self:BuildDupeInfo()
-        if DupeInfo then
-            duplicator.StoreEntityModifier( self, "WireDupeInfo", DupeInfo )
+        if beamData.sourceEnable then
+            render.SetMaterial( beamData.sourceMaterial )
+
+            render.DrawSprite( beamPoints[1], beamData.sourceSize1, beamData.sourceSize1, beamData.sourceColor1 )
+            render.DrawSprite( beamPoints[1], beamData.sourceSize2, beamData.sourceSize2, beamData.sourceColor2 )
+
+            if not beam.split then
+                render.DrawSprite( beamPoints[beamPointsCount], beamData.sourceSize1, beamData.sourceSize1, beamData.sourceColor1 )
+                render.DrawSprite( beamPoints[beamPointsCount], beamData.sourceSize2, beamData.sourceSize2, beamData.sourceColor2 )
+            end
+        end
+
+        if beamData.pointEnable then
+            render.SetMaterial( beamData.pointMaterial )
+
+            for j = 1, beamPointsCount do
+                render.DrawSprite( beamPoints[j], beamData.pointSize1, beamData.pointSize1, beamData.pointColor1 )
+                render.DrawSprite( beamPoints[j], beamData.pointSize2, beamData.pointSize2, beamData.pointColor2 )
+            end
+        end
+
+        if beamData.beamEnable then
+            render.SetMaterial( beamData.beamMaterial )
+
+            local v1 = beamPoints[1]
+            local v2 = beamPoints[2]
+
+            for j = 1, beamPointsCount - 1 do
+                render.DrawBeam( v1, v2, beamData.beamSize1, 0, 1, beamData.beamColor1 )
+                render.DrawBeam( v1, v2, beamData.beamSize2, 0, 1, beamData.beamColor2 )
+
+                v1 = beamPoints[j + 1]
+                v2 = beamPoints[j + 2]
+            end
         end
     end
+end
 
-    function ENT:OnEntityCopyTableFinish( dupedata )
-        dupedata.OverlayData = nil
-        dupedata.lastWireOverlayUpdate = nil
-        dupedata.WireDebugName = nil
+function ENT:Think()
+    self.BaseClass.Think( self )
+
+    if self.tanktracktool_reset then
+        self.tanktracktool_reset = nil
+        mode:init( self )
+        return
     end
 
-    local function EntityLookup( CreatedEntities )
-        return function( id, default )
-            if id == nil then return default end
-            if id == 0 then return game.GetWorld() end
-            local ent = CreatedEntities[id]
-            if IsValid( ent ) then return ent else return default end
-        end
-    end
+    mode:think( self )
+end
 
-    function ENT:OnDuplicated( dupe )
-        self.BaseClass.OnDuplicated( self, dupe )
-        self.DuplicationInProgress = true
-    end
-
-    function ENT:PostEntityPaste( Player, Ent, CreatedEntities )
-        if Ent.EntityMods and Ent.EntityMods.WireDupeInfo then
-            Ent:ApplyDupeInfo( Player, Ent, Ent.EntityMods.WireDupeInfo, EntityLookup( CreatedEntities ) )
-        end
-        self.DuplicationInProgress = nil
-    end
-
+function ENT:Draw()
+    self:DrawModel()
 end
