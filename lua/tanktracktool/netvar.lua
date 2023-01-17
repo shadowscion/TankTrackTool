@@ -90,6 +90,14 @@ if SERVER then
                 tanktracktool.note( string.format( "receiving link update\nply: %s\nent: %s\n", tostring( ply ), tostring( ent ) ) )
             end
 
+        elseif type == 2 then
+            if not netvar.canEdit( ent, ply ) then return end
+
+            print( "copy to", ent, "from", Entity( net.ReadUInt( 16 ) ) )
+            -- if tanktracktool.loud( tanktracktool.loud_link ) then
+            --     tanktracktool.note( string.format( "receiving link update\nply: %s\nent: %s\n", tostring( ply ), tostring( ent ) ) )
+            -- end
+
         end
     end )
 
@@ -520,13 +528,12 @@ end
 
 function tanktracktool.netvar.setLinks( ent, tbl, ply )
     if not netvar.isValid( ent ) then return false end
-    --if not istable( tbl ) or not table.IsSequential( tbl ) then return false end
     if not istable( tbl ) then return false end
 
     local entities = {}
     for k, v in pairs( tbl ) do
-        if not IsValid( v ) then return false end
-        if ply and not netvar.canLink( ent, ply ) then return false end
+        if not isentity( v ) or not IsValid( v ) then return false end
+        if ply and not netvar.canLink( v, ply ) then return false end
         entities[k] = v
     end
 

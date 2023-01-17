@@ -6,8 +6,8 @@ local net, hook, util, math, string, table, surface, draw, scripted_ents, Entity
 tanktracktool.linker = tanktracktool.linker or {}
 local linker = tanktracktool.linker
 
-function linker.openUI( ent )
-    linker.TOOL:Init( ent )
+function linker.openUI( ent, toolmode )
+    linker.TOOL:Init( ent, toolmode )
 end
 
 
@@ -19,13 +19,16 @@ linker.TOOL = {}
 linker.TOOL.HookName = "tanktracktoolLinker"
 
 linker.TOOL.Colors = {}
-linker.TOOL.Colors.line_link = Color( 236, 240, 241, 50 )
+linker.TOOL.Colors.line_link = Color( 236, 240, 241, 30 )
 linker.TOOL.Colors.text_link = Color( 236, 240, 241 )
-linker.TOOL.Colors.text_send = Color( 125, 255, 125, 255 )
-linker.TOOL.Colors.text_keys = Color( 255, 125, 125, 255 )
+linker.TOOL.Colors.text_send = Color( 202, 255, 191, 255 )
+linker.TOOL.Colors.text_keys = Color( 255, 214, 165, 255 )
 linker.TOOL.Colors.bbox = Color( 255, 255, 255, 50 )
-linker.TOOL.Colors.font_small = "Trebuchet18"
-linker.TOOL.Colors.font_large = "Trebuchet24"
+linker.TOOL.Colors.font_small = "tanktracktoolLinker_16"
+linker.TOOL.Colors.font_large = "tanktracktoolLinker_32"
+
+surface.CreateFont( linker.TOOL.Colors.font_small, { font = "Consolas", size = 16, weight = 200, shadow = false })
+surface.CreateFont( linker.TOOL.Colors.font_large, { font = "Consolas", size = 32, weight = 200, shadow = false })
 
 linker.TOOL.Sounds = {}
 linker.TOOL.Sounds.Enabled = true
@@ -40,7 +43,7 @@ hook.Remove( "PlayerBindPress", linker.TOOL.HookName )
 local function KeyPress( ply, bind, pressed, code ) return linker.TOOL:KeyPress( bind, code, ply ) end
 local function Paint() return linker.TOOL:Paint() end
 
-local function FormatText( self, v )
+local function FormatText( self, v, alias )
     if not v.bind then return end
     local text = {}
 
@@ -49,7 +52,7 @@ local function FormatText( self, v )
 
     for i = 1, #v.bind do
         table.insert( text, self.Colors.text_keys )
-        table.insert( text, string.upper( language.GetPhrase( input.GetKeyName( v.bind[i] ) ) ) )
+        table.insert( text, alias and alias[v.bind[i]] or string.upper( language.GetPhrase( input.GetKeyName( v.bind[i] ) ) ) )
 
         if i < #v.bind then
             table.insert( text, self.Colors.text_link )
@@ -84,10 +87,23 @@ function linker.TOOL:Confirm()
     self:Exit( true )
 end
 
-function linker.TOOL:Init( ent )
+function linker.TOOL:ConfirmCopy( e )
+    net.Start( "tanktracktool_link" )
+    net.WriteUInt( self.Data.Controller:EntIndex(), 16 )
+    net.WriteUInt( 2, 2 )
+    net.WriteUInt( e:EntIndex(), 16 )
+    net.SendToServer()
+
+    self:PlaySound( self.Sounds.Confirm )
+    self:Exit( true )
+end
+
+function linker.TOOL:Init( ent, toolmode )
     self:Exit( true )
 
-    self.Data = {}
+    local alias = toolmode and { [KEY_E] = "Right Click", [KEY_C] = "Left Click" }
+
+    self.Data = { toolmode = toolmode }
     self.Data.Time = SysTime()
     self.Data.Linker = table.Copy( ent.tanktracktool_linkerData )
     self.Data.Sender_Lookup = {}
@@ -98,31 +114,39 @@ function linker.TOOL:Init( ent )
             { self.Colors.text_send, "Controller" },
             {
                 self.Colors.text_link, "Press ",
-                self.Colors.text_keys, string.upper( language.GetPhrase( input.GetKeyName( KEY_R ) ) ),
+                self.Colors.text_keys, alias and alias[KEY_R] or string.upper( language.GetPhrase( input.GetKeyName( KEY_R ) ) ),
                 self.Colors.text_link, " to cancel",
             }
         }
     }
     self.Data.ConfirmText = {
         self.Colors.text_link, "Press ",
-        self.Colors.text_keys, string.upper( language.GetPhrase( input.GetKeyName( KEY_E ) ) ),
+        self.Colors.text_keys, alias and alias[KEY_E] or string.upper( language.GetPhrase( input.GetKeyName( KEY_E ) ) ),
         self.Colors.text_link, " to confirm",
+    }
+
+    self.Data.CopyText = {
+        self.Colors.text_link, "Press ",
+        self.Colors.text_keys, alias and alias[KEY_C] or string.upper( language.GetPhrase( input.GetKeyName( KEY_C ) ) ),
+        self.Colors.text_link, " to copy controller values",
     }
 
     for _, v in pairs( self.Data.Linker ) do
         if v.name then
-            v.text = FormatText( self, v )
+            v.text = FormatText( self, v, alias )
         else
             for _, v in pairs( v ) do
-                v.text = FormatText( self, v )
+                v.text = FormatText( self, v, alias )
                 self.Data.Sender_Lookup[v.name] = {}
                 self.Data.Sender_Table[v.name] = {}
             end
         end
     end
 
-    hook.Add( "HUDPaint", self.HookName, Paint )
-    hook.Add( "PlayerBindPress", self.HookName, KeyPress )
+    if not toolmode then
+        hook.Add( "HUDPaint", self.HookName, Paint )
+        hook.Add( "PlayerBindPress", self.HookName, KeyPress )
+    end
 
     self:PlaySound( self.Sounds.Open )
 end
@@ -144,6 +168,56 @@ function linker.TOOL:CheckDoubleKey()
     end
 end
 
+function linker.TOOL:KeyPressTool( tool, tr, keys )
+    if not IsValid( self.Data.Controller ) or ( keys[KEY_R] and not self:CheckDoubleKey() ) then
+        self:Exit()
+        return true
+    end
+
+    local e2 = tr.Entity
+    if e2 == self.Data.Controller and ( keys[KEY_E] and not self:CheckDoubleKey() ) then
+        self:Confirm()
+        return true
+    end
+
+    local id, command = next( self.Data.Linker )
+    if not id or not command then
+        return
+    end
+
+    if command.name then
+        local isdown = true
+
+        for i, key in pairs( command.bind or {} ) do
+            if not keys[key] then
+                isdown = false
+                break
+            end
+        end
+
+        if isdown then
+            self:SetupLink( id, command )
+            return true
+        end
+    else
+        for i, subcommand in ipairs( command ) do
+            local isdown = true
+
+            for _, key in pairs( subcommand.bind or {} ) do
+                if not keys[key] then
+                    isdown = false
+                    break
+                end
+            end
+
+            if isdown then
+                self:SetupLink( id, subcommand, i )
+                return true
+            end
+        end
+    end
+end
+
 function linker.TOOL:KeyPress( bind, code )
     if not IsValid( self.Data.Controller ) or ( input.IsKeyDown( KEY_R ) and not self:CheckDoubleKey() ) then
         self:Exit()
@@ -153,6 +227,11 @@ function linker.TOOL:KeyPress( bind, code )
     local e2 = LocalPlayer():GetEyeTraceNoCursor().Entity
     if e2 == self.Data.Controller and ( input.IsKeyDown( KEY_E ) and not self:CheckDoubleKey() ) then
         self:Confirm()
+        return true
+    end
+
+    if e2 ~= self.Data.Controller and e2:GetClass() == self.Data.Controller:GetClass() and ( input.IsKeyDown( KEY_C ) and not self:CheckDoubleKey() ) then
+        self:ConfirmCopy( e2 )
         return true
     end
 
@@ -275,6 +354,8 @@ local function ColoredText( p0, p1, frac, line, font, t )
     end
 end
 
+linker.TOOL.Colors.DrawText = ColoredText
+
 function linker.TOOL:Paint()
     if not IsValid( self.Data.Controller ) then
         self:Exit()
@@ -294,11 +375,14 @@ function linker.TOOL:Paint()
         end
 
         local p2 = ent:GetPos():ToScreen()
+        local y = #texts * sh * 0.5
+
+        -- local lx = p1.x + ( p2.x - p1.x ) * 0.9
+        -- local ly = p1.y + ( p2.y - p1.y ) * 0.9
 
         surface.SetDrawColor( self.Colors.line_link )
         surface.DrawLine( p1.x, p1.y, p2.x, p2.y )
-
-        local y = #texts * sh * 0.5
+        --surface.DrawRect( lx - 2, ly - 2, 4, 4 )
 
         for i, text in ipairs( texts ) do
             ColoredText( { x = p2.x, y = p2.y + ( i - 1 ) * sh - y }, nil, nil, nil, self.Colors.font_small, text )
@@ -314,7 +398,12 @@ function linker.TOOL:Paint()
     cam.End3D()
 
     if e2 == e1 then
-        ColoredText( { x = p1.x, y = p1.y + sh }, nil, nil, nil, self.Colors.font_large, self.Data.ConfirmText )
+        ColoredText( { x = p1.x, y = p1.y + sh }, nil, nil, nil, self.Colors.font_small, self.Data.ConfirmText )
+        return
+    end
+
+    if e2:GetClass() == e1:GetClass() then
+        ColoredText( e2:GetPos():ToScreen(), nil, nil, nil, self.Colors.font_large, self.Data.CopyText )
         return
     end
 

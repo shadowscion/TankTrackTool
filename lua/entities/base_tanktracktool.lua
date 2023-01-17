@@ -7,8 +7,8 @@ AddCSLuaFile()
 DEFINE_BASECLASS( "base_anim" )
 
 ENT.Type      = "anim"
-ENT.Spawnable = true
-ENT.AdminOnly = false
+ENT.Spawnable = false
+ENT.AdminOnly = true
 ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
