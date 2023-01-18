@@ -10,10 +10,8 @@ ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
 
-ENT.tanktracktool_linkData = {
-    { name = "Entity1", tool_bind = 2 },
-    { name = "Entity2", tool_bind = 3 },
-}
+tanktracktool.netvar.addLinks( ENT, "Entity1" )
+tanktracktool.netvar.addLinks( ENT, "Entity2" )
 
 function ENT:netvar_setLinks( tbl, ply )
     tbl = {

@@ -186,6 +186,8 @@ multitool.ui.colors.text_keyword = Color( 0, 255, 255 )
 multitool.ui.colors.text_input = Color( 0, 255, 0 )
 multitool.ui.colors.text_plain = Color( 255, 255, 255 )
 multitool.ui.colors.text_box = Color( 0, 0, 0, 100 )
+multitool.ui.colors.text_linked = Color( 255, 200, 0, 200 )
+multitool.ui.colors.text_linked_box = Color( 0, 0, 0, 100 )
 
 multitool.ui.colors.ents_bbox = Color( 255, 255, 255, 30 )
 multitool.ui.colors.ents_possible = rgb( multitool.ui.colors.text_plain, 0.111 )
@@ -196,8 +198,8 @@ multitool.ui.fonts = {}
 multitool.ui.fonts.small = "tanktracktool_stool0"
 multitool.ui.fonts.large = "tanktracktool_stool1"
 
-surface.CreateFont( multitool.ui.fonts.small, { font = "Comic Sans MS", size = 24, weight = 100, shadow = false } )
-surface.CreateFont( multitool.ui.fonts.large, { font = "Comic Sans MS", size = 30, weight = 100, shadow = false } )
+surface.CreateFont( multitool.ui.fonts.small, { font = "Comic Sans MS", size = 16, weight = 100, shadow = false } )
+surface.CreateFont( multitool.ui.fonts.large, { font = "Comic Sans MS", size = 24, weight = 100, shadow = false } )
 
 function multitool:renderModel( ent, color )
     if not IsValid( ent ) then return end
@@ -249,15 +251,17 @@ local function DrawOverlay( x, y, overlay )
     end
 
     x = x - w * 0.5
+    if overlay.lower then y = y + h * overlay.lower end
+    if overlay.raise then y = y - h * overlay.raise end
 
-    draw.RoundedBox( 8, x - 8, y - 8, w + 16, h + 16, multitool.ui.colors.text_box )
+    draw.RoundedBox( 8, x - 8, y - 8, w + 16, h + 16, overlay.text_box or multitool.ui.colors.text_box )
 
     for i = 1, #overlay do
         local ui = overlay[i]
         if not overlay[i].enabled then goto CONTINUE end
 
         surface.SetFont( ui.font )
-        surface.SetTextColor( color_black )
+        surface.SetTextColor( overlay.text_out or color_black )
 
         for ox = -1, 1 do
             for oy = -1, 1 do
@@ -278,13 +282,17 @@ local function DrawOverlay( x, y, overlay )
     end
 end
 
-local function GetOverlay( overlay )
+local function GetOverlay( overlay, enabled, param )
     for k, v in ipairs( overlay ) do
         v.text = table.concat( v.draw.text, "" )
         v.size = GetTextSize( v.text, v.font )
-        v.enabled = false
+        v.enabled = enabled
     end
-
+    if param then
+        for k, v in pairs( param ) do
+            overlay[k] = v
+        end
+    end
     return overlay
 end
 
@@ -301,7 +309,7 @@ do
 
     local overlay = GetOverlay( {
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "",
@@ -312,7 +320,7 @@ do
             },
         },
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "Left Click ",
@@ -329,7 +337,7 @@ do
             },
         },
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "Right Click ",
@@ -435,7 +443,7 @@ do
 
     local overlay = GetOverlay( {
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "",
@@ -446,7 +454,7 @@ do
             },
         },
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "Left Click ",
@@ -565,7 +573,7 @@ do
 
     local overlay = GetOverlay( {
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "",
@@ -576,7 +584,7 @@ do
             },
         },
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "Right Click ",
@@ -595,7 +603,7 @@ do
             },
         },
         {
-            font = multitool.ui.fonts.small,
+            font = multitool.ui.fonts.large,
             draw = {
                 text = {
                     "Right Click ",
@@ -629,8 +637,9 @@ do
         self.Data = {}
         self.Data.Send = {}
         self.Data.Info = multitool:getLinkableInfo( self.LinkTo )
+        self.Data.Command = 1
 
-        self:updateOverlays()
+        self:updateOverlay()
 
         gmod_tool:SetOperation( 2 )
     end
@@ -649,6 +658,14 @@ do
         else
             self.LookAt = tr.Entity
             gmod_tool:SetStage( 1 )
+        end
+
+        if self.Ents then
+            for ent, disp in pairs( self.Ents ) do
+                if not IsValid( ent ) then
+                    return multitool:reset()
+                end
+            end
         end
     end
 
@@ -671,42 +688,115 @@ do
 
             DrawOverlay( x, y, overlay )
         end
+        if self.Ents then
+            for ent, disp in pairs( self.Ents ) do
+                if not IsValid( ent ) then
+                    goto CONTINUE
+                end
+
+                local pos = ent:GetPos():ToScreen()
+                local x = pos.x
+                local y = pos.y
+
+                DrawOverlay( x, y, disp, true )
+
+                ::CONTINUE::
+            end
+        end
     end
 
-    function multitool.modes.link:updateOverlays()
+    function multitool.modes.link:updateOverlay()
         overlay[1].enabled = true
         overlay[2].enabled = false
         overlay[3].enabled = false
 
-        local k, v = next( self.Data.Info )
-        if not k or not v then return end
+        self.Ents = {}
+        for k, v in pairs( self.Data.Send ) do
+            if isentity( v ) then
+                -- v == ent
+                -- k == key
 
-        if v.tool_bind == 2 then
-            local name = v.name
+                self.Ents[v] = self.Ents[v] or {}
+                table.insert( self.Ents[v], k )
+            else
+                for i, j in pairs( v ) do
+                    -- i == ent
+                    -- j == key
 
-            overlay[2].draw.text[5] = name
-            overlay[2].text = table.concat( overlay[2].draw.text, "" )
-            overlay[2].size = GetTextSize( overlay[2].text, overlay[2].font )
-
-            overlay[2].enabled = true
+                    self.Ents[i] = self.Ents[i] or {}
+                    table.insert( self.Ents[i], j )
+                end
+            end
         end
 
-        if v.tool_bind == 3 then
-            local name = v.name
+        for ent, lines in pairs( self.Ents ) do
+            local text = {}
 
-            overlay[3].draw.text[7] = name
+            for k, v in ipairs( lines ) do
+                text[#text + 1] = {
+                    font = multitool.ui.fonts.small,
+                    draw = {
+                        text = { v },
+                        cols = { multitool.ui.colors.text_linked },
+                    }
+                }
+            end
+
+            self.Ents[ent] = GetOverlay( text, true, {
+                lower = 3,
+                text_out = multitool.ui.colors.text_linked_box,
+                text_box = multitool.ui.colors.text_linked_box,
+            } )
+        end
+
+
+        local command = self.Data.Info[self.Data.Command]
+
+        if not command then
+            return
+        end
+
+        if not command.istable then
+            overlay[2].draw.text[5] = command.name
+            overlay[2].text = table.concat( overlay[2].draw.text, "" )
+            overlay[2].size = GetTextSize( overlay[2].text, overlay[2].font )
+            overlay[2].enabled = true
+        else
+            overlay[2].draw.text[5] = command[1].name
+            overlay[2].text = table.concat( overlay[2].draw.text, "" )
+            overlay[2].size = GetTextSize( overlay[2].text, overlay[2].font )
+            overlay[2].enabled = true
+
+            overlay[3].draw.text[7] = command[2].name
             overlay[3].text = table.concat( overlay[3].draw.text, "" )
             overlay[3].size = GetTextSize( overlay[3].text, overlay[3].font )
-
             overlay[3].enabled = true
         end
     end
 
     function multitool.modes.link:keyPress( gmod_tool, ply, key )
         if key == 2 then return multitool:reset() end
-        if #self.Data.Info > 0 then
-            table.remove( self.Data.Info, 1 )
+
+        local command = self.Data.Info[self.Data.Command]
+
+        if not command then
+            return
         end
-        self:updateOverlays()
+
+        if key == 1 and IsValid( self.LookAt ) then
+            if not command.istable then
+                self.Data.Send[command.name] = self.LookAt
+                self.Data.Command = self.Data.Command + 1
+            else
+                local name = ply:KeyDown( IN_SPEED ) and command[2].name or command[1].name
+                if not self.Data.Send[name] then
+                    self.Data.Send[name] = {}
+                end
+                if not self.Data.Send[name][self.LookAt] then
+                    self.Data.Send[name][self.LookAt] = name .. ( table.Count( self.Data.Send[name] ) + 1 )
+                end
+            end
+            self:updateOverlay()
+        end
     end
 end

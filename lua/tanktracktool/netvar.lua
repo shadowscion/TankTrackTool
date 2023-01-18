@@ -526,7 +526,7 @@ function netvar.getVar( ent, name, index )
     return ent.netvar.values[name]
 end
 
-function tanktracktool.netvar.setLinks( ent, tbl, ply )
+function netvar.setLinks( ent, tbl, ply )
     if not netvar.isValid( ent ) then return false end
     if not istable( tbl ) then return false end
 
@@ -542,6 +542,22 @@ function tanktracktool.netvar.setLinks( ent, tbl, ply )
     if SERVER then ent.netvar_syncLink = true end
 
     return entities
+end
+
+function netvar.addLinks( e, n1, n2 )
+    if not isstring( n1 ) or ( n2 and not isstring( n2 ) ) then return end
+
+    if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
+
+    if not n2 then
+        table.insert( e.tanktracktool_linkData, { name = n1, tool_bind = "rmb" } )
+    else
+        table.insert( e.tanktracktool_linkData, {
+            istable = true,
+            { name = n1, tool_bind = "rmb" },
+            { name = n2, tool_bind = "rmb+shift" },
+        } )
+    end
 end
 
 

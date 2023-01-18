@@ -6,13 +6,10 @@ ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.Category  = "tanktracktool"
 
-ENT.tanktracktool_linkerData = {
-    { name = "Chassis", bind = { KEY_E } },
-    {
-        { name = "Roller", istable = true, bind = { KEY_E, KEY_LSHIFT } },
-        { name = "Wheel",  istable = true, bind = { KEY_E } },
-    },
-}
+local tanktracktool = tanktracktool
+
+tanktracktool.netvar.addLinks( ENT, "Chassis" )
+tanktracktool.netvar.addLinks( ENT, "Wheel", "Roller" )
 
 local netvar = tanktracktool.netvar.new()
 

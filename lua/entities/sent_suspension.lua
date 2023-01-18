@@ -9,17 +9,15 @@ ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
 
-ENT.tanktracktool_linkerData = {
-    { name = "Chassis", bind = { KEY_E } },
-    { name = "WheelLeft", bind = { KEY_E } },
-    { name = "WheelRight", bind = { KEY_E } },
-}
+tanktracktool.netvar.addLinks( ENT, "Chassis" )
+tanktracktool.netvar.addLinks( ENT, "LeftWheel" )
+tanktracktool.netvar.addLinks( ENT, "RightWheel" )
 
 function ENT:netvar_setLinks( tbl, ply )
     tbl = {
         Chassis = tbl.Chassis or self.netvar.entities.Chassis,
-        WheelLeft = tbl.WheelLeft or self.netvar.entities.WheelLeft,
-        WheelRight = tbl.WheelRight or self.netvar.entities.WheelRight,
+        LeftWheel = tbl.LeftWheel or self.netvar.entities.LeftWheel,
+        RightWheel = tbl.RightWheel or self.netvar.entities.RightWheel,
     }
     return tanktracktool.netvar.setLinks( self, tbl, ply )
 end
