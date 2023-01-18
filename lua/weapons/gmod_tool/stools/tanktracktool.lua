@@ -56,6 +56,7 @@ if SERVER then return end
     multitool base
 ]]
 local multitool = { modes = {} }
+tanktracktool.multitool = multitool
 
 TOOL.Information = {}
 local function AddInformation( name, icon, text, stage, op )
@@ -69,6 +70,9 @@ function TOOL:SetOperation( i ) self._operation = i end
 function TOOL:GetOperation() return self._operation or 0 end
 function TOOL:SetStage( i ) self._stage = i end
 function TOOL:GetStage() return self._stage or 0 end
+function TOOL:multitool_setMode( mode, ... )
+    multitool:setMode( self, LocalPlayer(), mode, ... )
+end
 
 function TOOL:DrawHUD()
     multitool:draw( self, LocalPlayer() )
@@ -87,8 +91,29 @@ net.Receive( "tanktracktool_stool", function()
     multitool:keyPress( t, t:GetOwner(), k )
 end )
 
-concommand.Add( "tanktracktool_multitool_reset", function()
-    if multitool then multitool:reset() end
+concommand.Add( "tanktracktool_multitool", function( ply, cmd, args )
+    if not multitool then return end
+    if not args or args[1] == nil or args[1] == "" or args[1] == "reset" then
+        multitool:reset()
+        return
+    end
+
+    local k, v, e = unpack( args )
+    e = Entity( tonumber( e ) )
+
+    if k == "mode" and v == "link" and multitool:isLinkable( e ) then
+        LocalPlayer():GetTool( "tanktracktool" ):multitool_setMode( "link", e )
+        RunConsoleCommand( "gmod_tool", "tanktracktool" )
+        --spawnmenu.ActivateTool( "tanktracktool", false )
+        return
+    end
+
+    if k == "mode" and v == "copy" and multitool:isCopyable( e ) then
+        LocalPlayer():GetTool( "tanktracktool" ):multitool_setMode( "copy", e )
+        RunConsoleCommand( "gmod_tool", "tanktracktool" )
+        --spawnmenu.ActivateTool( "tanktracktool", false )
+        return
+    end
 end )
 
 
@@ -181,25 +206,27 @@ end
 multitool.ui = {}
 
 multitool.ui.colors = {}
-multitool.ui.colors.text_class = Color( 255, 200, 0 )
-multitool.ui.colors.text_keyword = Color( 0, 255, 255 )
+multitool.ui.colors.text_class = Color( 255, 125, 0 )
+multitool.ui.colors.text_keyword = Color( 125, 255, 255 )
 multitool.ui.colors.text_input = Color( 0, 255, 0 )
-multitool.ui.colors.text_plain = Color( 255, 255, 255 )
+multitool.ui.colors.text_plain = Color( 227, 223, 255 )
 multitool.ui.colors.text_box = Color( 0, 0, 0, 100 )
-multitool.ui.colors.text_linked = Color( 255, 200, 0, 200 )
+
+multitool.ui.colors.text_linked = Color( multitool.ui.colors.text_class.r, multitool.ui.colors.text_class.g, multitool.ui.colors.text_class.b, 200 )
 multitool.ui.colors.text_linked_box = Color( 0, 0, 0, 100 )
 
-multitool.ui.colors.ents_bbox = Color( 255, 255, 255, 30 )
-multitool.ui.colors.ents_possible = rgb( multitool.ui.colors.text_plain, 0.111 )
+multitool.ui.colors.ents_bbox = Color( 255, 255, 255, 66 )
+multitool.ui.colors.ents_possible = rgb( multitool.ui.colors.text_plain, 0.333 )
 multitool.ui.colors.ents_selected = rgb( multitool.ui.colors.text_class, 0.333 )
 multitool.ui.colors.ents_hovered = rgb( multitool.ui.colors.text_keyword, 0.333 )
+
 
 multitool.ui.fonts = {}
 multitool.ui.fonts.small = "tanktracktool_stool0"
 multitool.ui.fonts.large = "tanktracktool_stool1"
 
-surface.CreateFont( multitool.ui.fonts.small, { font = "Comic Sans MS", size = 16, weight = 100, shadow = false } )
-surface.CreateFont( multitool.ui.fonts.large, { font = "Comic Sans MS", size = 24, weight = 100, shadow = false } )
+surface.CreateFont( multitool.ui.fonts.small, { font = "Consolas", size = 14, weight = 100, shadow = false } )
+surface.CreateFont( multitool.ui.fonts.large, { font = "Consolas", size = 20, weight = 100, shadow = false } )
 
 function multitool:renderModel( ent, color )
     if not IsValid( ent ) then return end
@@ -225,7 +252,7 @@ function multitool:renderModel( ent, color )
     render.SetColorModulation( 1, 1, 1 )
     render.SuppressEngineLighting( false )
 
-    local min, max = ent:GetRenderBounds()
+    local min, max = ent:GetModelBounds()
     render.DrawWireframeBox( ent:GetPos(), ent:GetAngles(), min, max, multitool.ui.colors.ents_bbox )
 
     cam.End3D()
@@ -356,6 +383,8 @@ do
     } )
 
     function multitool.modes.wait:init( gmod_tool, ply, prevmode, ... )
+        self.Data = {}
+
         overlay[1].enabled = false
         overlay[2].enabled = false
         overlay[3].enabled = false
@@ -396,18 +425,18 @@ do
             gmod_tool:SetStage( 0 )
         end
 
-        self.Ents = multitool:findEntities( ply, 200, 45 )
+        self.Data.Ents = multitool:findEntities( ply, 200, 45 )
     end
 
     function multitool.modes.wait:draw( gmod_tool, ply )
-        if self.Ents then
-            for i = 1, #self.Ents do
-                local v = self.Ents[i]
+        if self.Data.Ents then
+            for i = 1, #self.Data.Ents do
+                local v = self.Data.Ents[i]
                 if v == self.LookAt then
                     goto CONTINUE
                 end
 
-                multitool:renderModel( self.Ents[i], multitool.ui.colors.ents_possible )
+                multitool:renderModel( self.Data.Ents[i], multitool.ui.colors.ents_possible )
 
                 ::CONTINUE::
             end
@@ -483,6 +512,8 @@ do
             return
         end
 
+        self.Data = {}
+
         overlay[1].enabled = true
         overlay[2].enabled = true
 
@@ -505,15 +536,15 @@ do
             gmod_tool:SetStage( 1 )
         end
 
-        self.Ents = multitool:findEntities( ply, 200, 45, self.CopyFrom:GetClass() )
+        self.Data.Ents = multitool:findEntities( ply, 200, 45, self.CopyFrom:GetClass() )
     end
 
     function multitool.modes.copy:draw( gmod_tool, ply )
         if not IsValid( self.CopyFrom ) then return end
 
-        if self.Ents then
-            for i = 1, #self.Ents do
-                local v = self.Ents[i]
+        if self.Data.Ents then
+            for i = 1, #self.Data.Ents do
+                local v = self.Data.Ents[i]
                 if v == self.CopyFrom or v == self.LookAt then
                     goto CONTINUE
                 end
@@ -550,7 +581,7 @@ do
                 if multitool:isCopyable( self.CopyFrom, self.LookAt ) then
                     net.Start( "tanktracktool_link" )
                     net.WriteUInt( self.LookAt:EntIndex(), 16 )
-                    net.WriteUInt( 2, 2 )
+                    net.WriteUInt( 3, 2 )
                     net.WriteUInt( self.CopyFrom:EntIndex(), 16 )
                     net.SendToServer()
                 end
@@ -568,6 +599,7 @@ end
 do
     AddInformation( "link_look", "materials/icon16/eye.png", "Look at another entity to begin", 0, 2 )
     AddInformation( "link_set", "materials/gui/rmb.png", "Link this entity to selected controller", 1, 2 )
+    AddInformation( "link_do", "materials/gui/rmb.png", "Confirm", 2, 2 )
 
     multitool.modes.link = {}
 
@@ -627,6 +659,54 @@ do
         },
     } )
 
+    local overlay_confirm = GetOverlay( {
+        {
+            font = multitool.ui.fonts.large,
+            draw = {
+                text = {
+                    "",
+                },
+                cols = {
+                    multitool.ui.colors.text_class,
+                },
+            },
+        },
+        {
+            font = multitool.ui.fonts.large,
+            draw = {
+                text = {
+                    "Right Click ",
+                    "and ",
+                    "Shift ",
+                    "to ",
+                    "unlink all",
+                },
+                cols = {
+                    multitool.ui.colors.text_input,
+                    multitool.ui.colors.text_plain,
+                    multitool.ui.colors.text_input,
+                    multitool.ui.colors.text_plain,
+                    multitool.ui.colors.text_keyword,
+                },
+            },
+        },
+        {
+            font = multitool.ui.fonts.large,
+            draw = {
+                text = {
+                    "Right Click ",
+                    "to ",
+                    "confirm",
+                },
+                cols = {
+                    multitool.ui.colors.text_input,
+                    multitool.ui.colors.text_plain,
+                    multitool.ui.colors.text_keyword,
+                },
+            },
+        },
+    }, true )
+
     function multitool.modes.link:init( gmod_tool, ply, prevmode, ent )
         self.LinkTo = ent
         if not IsValid( self.LinkTo ) or not multitool:isLinkable( self.LinkTo ) then
@@ -651,17 +731,23 @@ do
         end
 
         local tr = ply:GetEyeTrace()
+        self.LookAtReal = tr.Entity
 
-        if not IsValid( tr.Entity ) or tr.Entity == self.LinkTo then
+        if self.LookAtReal == self.LinkTo then
             self.LookAt = nil
-            gmod_tool:SetStage( 0 )
+            gmod_tool:SetStage( 2 )
         else
-            self.LookAt = tr.Entity
-            gmod_tool:SetStage( 1 )
+            if not tr.HitNonWorld or not IsValid( tr.Entity ) or tr.Entity == self.LinkTo then
+                self.LookAt = nil
+                gmod_tool:SetStage( 0 )
+            else
+                self.LookAt = tr.Entity
+                gmod_tool:SetStage( 1 )
+            end
         end
 
-        if self.Ents then
-            for ent, disp in pairs( self.Ents ) do
+        if self.Data.Ents then
+            for ent, disp in pairs( self.Data.Ents ) do
                 if not IsValid( ent ) then
                     return multitool:reset()
                 end
@@ -673,6 +759,21 @@ do
         if not IsValid( self.LinkTo ) then return end
 
         multitool:renderModel( self.LinkTo, multitool.ui.colors.ents_selected )
+
+        if self.LookAtReal == self.LinkTo then
+            local pos = self.LookAtReal:GetPos():ToScreen()
+            local x = pos.x
+            local y = pos.y
+
+            local class = self.LookAtReal:GetClass()
+            overlay_confirm[1].text = class
+            overlay_confirm[1].size = GetTextSize( class, overlay_confirm[1].font )
+            overlay_confirm[1].draw.text[1] = class
+
+            overlay_confirm[3].enabled = self.Data.Ents ~= nil
+
+            DrawOverlay( x, y, overlay_confirm )
+        end
 
         if IsValid( self.LookAt ) then
             multitool:renderModel( self.LookAt, multitool.ui.colors.ents_hovered )
@@ -688,8 +789,8 @@ do
 
             DrawOverlay( x, y, overlay )
         end
-        if self.Ents then
-            for ent, disp in pairs( self.Ents ) do
+        if self.Data.Ents then
+            for ent, disp in pairs( self.Data.Ents ) do
                 if not IsValid( ent ) then
                     goto CONTINUE
                 end
@@ -710,26 +811,26 @@ do
         overlay[2].enabled = false
         overlay[3].enabled = false
 
-        self.Ents = {}
+        self.Data.Ents = {}
         for k, v in pairs( self.Data.Send ) do
             if isentity( v ) then
                 -- v == ent
-                -- k == key
+                -- k == name
 
-                self.Ents[v] = self.Ents[v] or {}
-                table.insert( self.Ents[v], k )
+                self.Data.Ents[v] = self.Data.Ents[v] or {}
+                table.insert( self.Data.Ents[v], k )
             else
                 for i, j in pairs( v ) do
                     -- i == ent
-                    -- j == key
+                    -- j == name
 
-                    self.Ents[i] = self.Ents[i] or {}
-                    table.insert( self.Ents[i], j )
+                    self.Data.Ents[i] = self.Data.Ents[i] or {}
+                    table.insert( self.Data.Ents[i], j )
                 end
             end
         end
 
-        for ent, lines in pairs( self.Ents ) do
+        for ent, lines in pairs( self.Data.Ents ) do
             local text = {}
 
             for k, v in ipairs( lines ) do
@@ -742,13 +843,14 @@ do
                 }
             end
 
-            self.Ents[ent] = GetOverlay( text, true, {
+            self.Data.Ents[ent] = GetOverlay( text, true, {
                 lower = 3,
                 text_out = multitool.ui.colors.text_linked_box,
                 text_box = multitool.ui.colors.text_linked_box,
             } )
         end
 
+        if not next( self.Data.Ents ) then self.Data.Ents = nil end
 
         local command = self.Data.Info[self.Data.Command]
 
@@ -777,26 +879,177 @@ do
     function multitool.modes.link:keyPress( gmod_tool, ply, key )
         if key == 2 then return multitool:reset() end
 
-        local command = self.Data.Info[self.Data.Command]
+        if self.LookAtReal == self.LinkTo then
+            if key == 1 and ply:KeyDown( IN_SPEED ) then
+                net.Start( "tanktracktool_link" )
+                net.WriteUInt( self.LinkTo:EntIndex(), 16 )
+                net.WriteUInt( 2, 2 )
+                net.SendToServer()
 
-        if not command then
+                return multitool:reset()
+            end
+
+            if key == 1 and self.Data.Ents then
+                for ent, disp in pairs( self.Data.Ents ) do
+                    if not IsValid( ent ) then
+                        return multitool:reset()
+                    end
+                end
+
+                net.Start( "tanktracktool_link" )
+                net.WriteUInt( self.LinkTo:EntIndex(), 16 )
+                net.WriteUInt( 1, 2 )
+                net.WriteTable( self.Data.Send )
+                net.SendToServer()
+
+                return multitool:reset()
+            end
+
             return
         end
 
-        if key == 1 and IsValid( self.LookAt ) then
-            if not command.istable then
-                self.Data.Send[command.name] = self.LookAt
-                self.Data.Command = self.Data.Command + 1
-            else
-                local name = ply:KeyDown( IN_SPEED ) and command[2].name or command[1].name
-                if not self.Data.Send[name] then
-                    self.Data.Send[name] = {}
-                end
-                if not self.Data.Send[name][self.LookAt] then
-                    self.Data.Send[name][self.LookAt] = name .. ( table.Count( self.Data.Send[name] ) + 1 )
+        if key ~= 1 or not IsValid( self.LookAt ) then return end
+
+        local command = self.Data.Info[self.Data.Command]
+        if not command then return end
+
+        if command.istable then
+            command = command[ply:KeyDown( IN_SPEED ) and 2 or 1 ]
+
+            if not isfunction( command.tool_filter ) or command.tool_filter( self.LinkTo, self.LookAt, command.name, self.Data.Send, true ) then
+                if not self.Data.Send[command.name] or not self.Data.Send[command.name][self.LookAt] then
+                    if not self.Data.Send[command.name] then
+                        self.Data.Send[command.name] = {}
+                    end
+                    self.Data.Send[command.name][self.LookAt] = command.name .. ( table.Count( self.Data.Send[command.name] ) + 1 )
                 end
             end
-            self:updateOverlay()
+        else
+            if not isfunction( command.tool_filter ) or command.tool_filter( self.LinkTo, self.LookAt, command.name, self.Data.Send, true ) then
+                self.Data.Send[command.name] = self.LookAt
+                self.Data.Command = self.Data.Command + 1
+            end
+        end
+
+        self:updateOverlay()
+    end
+end
+
+
+--[[
+    panel
+]]
+TOOL.ClientConVar = {
+    ["spawn_model"] = "models/hunter/plates/plate.mdl",
+}
+
+local function ResetConvars()
+    local l = {
+        "tanktracktool_spawn_model",
+        "tanktracktool_autotracks_disable",
+        "tanktracktool_autotracks_detail_max",
+        "tanktracktool_autotracks_detail_incr",
+        "tanktracktool_pointbeam_disable",
+    }
+
+    for k, v in ipairs( l ) do
+        local d = GetConVar( v ):GetDefault()
+        RunConsoleCommand( v, d )
+    end
+
+    RunConsoleCommand( "tanktracktool_loud" )
+    RunConsoleCommand( "tanktracktool_multitool" )
+end
+
+local function BuildPanel_AddonSettings( self )
+    local pnl = vgui.Create( "DForm" )
+    pnl:SetName( "Addon Settings" )
+
+    local btn = pnl:Button( "Open Wiki" )
+    btn.DoClick = function()
+        gui.OpenURL( "https://github.com/shadowscion/tanktracktool/wiki" )
+    end
+
+    local btn = pnl:Button( "Reset Settings" )
+    btn.DoClick = ResetConvars
+
+    return pnl
+end
+
+local function header( pnl, title )
+    local t = pnl:Help( title )
+    t:DockMargin( 0, 0, 0, 0 )
+    t.Paint = function( self, w, h )
+        surface.SetDrawColor( 0, 0, 0, 255 )
+        surface.DrawLine( 0, h - 1, w, h - 1 )
+    end
+    return t
+end
+
+local function BuildPanel_EntitySettings( self )
+    local pnl = vgui.Create( "DForm" )
+    pnl:SetName( "Entity Settings" )
+
+    --
+    local btn = pnl:Button( "Resync Entities" )
+    local sec = SysTime()
+
+    btn.DoClick = function()
+        if SysTime() - sec < 5 then
+            return
+        else
+            sec = SysTime()
+            for k, ent in ipairs( ents.GetAll() ) do
+                ent.netvar_syncData = nil
+                ent.netvar_syncLink = nil
+            end
         end
     end
+
+    --
+    local txt = header( pnl, "Spawn Menu" )
+
+    local mdl = pnl:TextEntry( "Entity model:", "tanktracktool_spawn_model" )
+
+    local combo = vgui.Create( "DComboBox", pnl )
+    pnl:AddItem( combo )
+
+    combo:SetText( "Spawn entity..." )
+    combo:AddChoice( "sent_tanktracks_auto", nil, nil, "icon16/bullet_blue.png" )
+    combo:AddChoice( "sent_tanktracks_legacy", nil, nil, "icon16/bullet_blue.png" )
+    combo:AddChoice( "sent_point_beam", nil, nil, "icon16/bullet_blue.png" )
+
+    combo.OnSelect = function( _, id, val, func )
+        combo:SetText( "Spawn entity..." )
+        RunConsoleCommand( "gm_spawnsent", val )
+        surface.PlaySound( "ui/buttonclickrelease.wav" )
+    end
+
+    --
+    local txt = header( pnl, "Autotracks" )
+
+    local cbox = pnl:CheckBox( "Disable rendering", "tanktracktool_autotracks_disable" )
+    cbox.OnChange = function( _, value )
+        cbox.Label:SetTextColor( value and Color( 255, 0, 0 ) or nil )
+    end
+
+    local cbox = pnl:CheckBox( "Adaptive Detail", "tanktracktool_autotracks_detail_incr" )
+    cbox:SetToolTip( "Track vertex detail increases as movement speed increases" )
+
+    local sld = pnl:NumSlider( "Maximum Detail", "tanktracktool_autotracks_detail_max", 4, 16, 0 )
+
+    --
+    local txt = header( pnl, "Point Beam" )
+
+    local cbox = pnl:CheckBox( "Disable rendering", "tanktracktool_pointbeam_disable" )
+    cbox.OnChange = function( _, value )
+        cbox.Label:SetTextColor( value and Color( 255, 0, 0 ) or nil )
+    end
+
+    return pnl
+end
+
+function TOOL.BuildCPanel( self )
+    self:AddPanel( BuildPanel_AddonSettings( self ) )
+    self:AddPanel( BuildPanel_EntitySettings( self ) )
 end

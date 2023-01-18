@@ -3,10 +3,71 @@ include( "shared.lua" )
 
 local tanktracktool =  tanktracktool
 
+
+--[[
+    tool_link setup
+]]
+local function tool_filter_wheels( controller, ent, key, enttbl, feedback )
+    if not isentity( ent ) or not IsValid( ent ) or ent:IsPlayer() or ent:IsVehicle() or ent:IsNPC() or ent:IsWorld() then
+        if feedback then chat.AddText( Color( 255, 0, 0 ), "Invalid entity" ) end
+        return false
+    end
+    if ent == enttbl.Chassis then
+        if feedback then chat.AddText( tanktracktool.multitool.ui.colors.text_plain, "This entity is the ", tanktracktool.multitool.ui.colors.text_class, "Chassis" ) end
+        return false
+    end
+    if key == "Wheel" and enttbl.Roller and enttbl.Roller[ent] then
+        if feedback then chat.AddText( tanktracktool.multitool.ui.colors.text_plain, "This entity is already a ", tanktracktool.multitool.ui.colors.text_class, "Roller" ) end
+        return false
+    end
+    if key == "Roller" and enttbl.Wheel and enttbl.Wheel[ent] then
+        if feedback then chat.AddText( tanktracktool.multitool.ui.colors.text_plain, "This entity is already a ", tanktracktool.multitool.ui.colors.text_class, "Wheel" ) end
+        return false
+    end
+
+    local e
+    if enttbl.Roller and next( enttbl.Roller ) then
+        e = next( enttbl.Roller )
+    end
+    if enttbl.Wheel and next( enttbl.Wheel ) then
+        e = next( enttbl.Wheel )
+    end
+
+    if e then
+        local m = enttbl.Chassis:GetWorldTransformMatrix()
+        if tobool( controller.netvar.values.systemRotate ) then
+            m:Rotate( Angle( 0, -90, 0 ) )
+        end
+
+        local pos, dir = m:GetTranslation(), m:GetRight()
+        local d1 = dir:Dot( ( ent:GetPos() - pos ):GetNormalized() ) > 0
+        local d2 = dir:Dot( ( e:GetPos() - pos ):GetNormalized() ) > 0
+
+        if d1 ~= d2 then
+            if feedback then
+                chat.AddText(
+                    tanktracktool.multitool.ui.colors.text_plain, "All ",
+                    tanktracktool.multitool.ui.colors.text_class, "Wheels ",
+                    tanktracktool.multitool.ui.colors.text_plain, "and ",
+                    tanktracktool.multitool.ui.colors.text_class, "Rollers ",
+                    tanktracktool.multitool.ui.colors.text_plain, "must be on the same side of the ",
+                    tanktracktool.multitool.ui.colors.text_class, "Chassis"
+                )
+            end
+            return false
+        end
+    end
+
+    return true
+end
+
+tanktracktool.netvar.addToolLink( ENT, "Chassis", nil, nil )
+tanktracktool.netvar.addToolLinks( ENT, "Wheel", tool_filter_wheels, nil, "Roller", tool_filter_wheels, nil )
+
+
 --[[
     netvar hooks
 ]]
-
 local hooks = {}
 
 hooks.editor_open = function( self, editor )
@@ -192,6 +253,12 @@ function ENT:autotracks_getMatrix()
 end
 
 function ENT:Think()
+    if tanktracktool.disable_autotracks then
+        self.tanktracktool_reset = true
+        mode:override( self, false )
+        return
+    end
+
     self.BaseClass.Think( self )
 
     if self.tanktracktool_reset then

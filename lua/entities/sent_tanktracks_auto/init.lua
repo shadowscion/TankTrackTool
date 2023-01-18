@@ -24,7 +24,7 @@ inputs.RightScroll = function( self, ply, value )
     self:SetNW2Float( "netwire_rightScroll", value )
 end
 inputs.RightBrake = function( self, ply, value )
-    self:SetNW2Bool( "netwire_rightBrake", value )
+    self:SetNW2Bool( "netwire_rightBrake", tobool( value ) )
 end
 inputs.AxisEntity = function( self, ply, value )
     if ply and not tanktracktool.netvar.canLink( value, ply ) then value = nil end

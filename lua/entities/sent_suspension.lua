@@ -9,11 +9,21 @@ ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
 
-tanktracktool.netvar.addLinks( ENT, "Chassis" )
-tanktracktool.netvar.addLinks( ENT, "LeftWheel" )
-tanktracktool.netvar.addLinks( ENT, "RightWheel" )
+
+--[[
+    tool_link setup
+]]
+if CLIENT then
+    tanktracktool.netvar.addToolLink( ENT, "Chassis", nil, nil )
+    tanktracktool.netvar.addToolLink( ENT, "LeftWheel", nil, nil )
+    tanktracktool.netvar.addToolLink( ENT, "RightWheel", nil, nil )
+end
 
 function ENT:netvar_setLinks( tbl, ply )
+    if not istable( tbl ) then
+        return tanktracktool.netvar.setLinks( self, {}, ply )
+    end
+
     tbl = {
         Chassis = tbl.Chassis or self.netvar.entities.Chassis,
         LeftWheel = tbl.LeftWheel or self.netvar.entities.LeftWheel,
@@ -22,6 +32,10 @@ function ENT:netvar_setLinks( tbl, ply )
     return tanktracktool.netvar.setLinks( self, tbl, ply )
 end
 
+
+--[[
+    netvar setup
+]]
 local netvar = tanktracktool.netvar.new()
 
 local default = {

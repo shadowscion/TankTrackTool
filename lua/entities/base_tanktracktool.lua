@@ -36,7 +36,8 @@ end
 if SERVER then
 
     local function getmodel( ply, class )
-        local a = ply:GetInfo( "tanktracktool_model_" .. class )
+        local a = ply:GetInfo( "tanktracktool_spawn_model" )
+        print( a )
         if a and util.IsValidModel( a ) then return a end
 
         local b = scripted_ents.GetMember( class, "tanktracktool_model" )

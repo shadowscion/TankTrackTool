@@ -8,9 +8,10 @@ ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
 
-tanktracktool.netvar.addLinks( ENT, "Chassis" )
-tanktracktool.netvar.addLinks( ENT, "Wheel", "Roller" )
 
+--[[
+    netvar setup
+]]
 local netvar = tanktracktool.netvar.new()
 
 function ENT:netvar_setup()
@@ -43,6 +44,7 @@ if CLIENT then
     netvar:get( "trackMaterial" ).data.values = tanktracktool.autotracks.textureList()
     netvar:get( "trackMaterial" ).data.images = "tanktracktool/autotracks/gui/%s"
 end
+
 
 --[[
     sort wheels based on forward position
@@ -90,6 +92,7 @@ local function GetSortedWheels( chassis, wheels, rollers, rotate )
     return tbl
 end
 
+
 --[[
     check if all ents are to one side of the chassis
     optional filter function
@@ -120,12 +123,15 @@ local function CheckParallelism( chassis, tbl, rotate, filter )
     return false
 end
 
+
 --[[
     sort wheels before sending the table to netvar linking function
     prop protection is checked there
 ]]
 function ENT:netvar_setLinks( tbl, ply )
-    if not istable( tbl ) then return end
+    if not istable( tbl ) then
+        return tanktracktool.netvar.setLinks( self, {}, ply )
+    end
 
     local rotate = tobool( self.netvar.values.systemRotate ) and Angle( 0, -90, 0 )
 

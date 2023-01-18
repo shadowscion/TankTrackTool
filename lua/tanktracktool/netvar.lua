@@ -91,13 +91,16 @@ if SERVER then
             end
 
         elseif type == 2 then
-            if not netvar.canEdit( ent, ply ) then return end
+            if not netvar.canEdit( ent, ply ) or not isfunction( ent.netvar_setLinks ) then return end
 
-            print( "copy to", ent, "from", Entity( net.ReadUInt( 16 ) ) )
-            -- if tanktracktool.loud( tanktracktool.loud_link ) then
-            --     tanktracktool.note( string.format( "receiving link update\nply: %s\nent: %s\n", tostring( ply ), tostring( ent ) ) )
-            -- end
+            ent:netvar_setLinks( nil, ply )
 
+            if tanktracktool.loud( tanktracktool.loud_link ) then
+                tanktracktool.note( string.format( "removing links\nply: %s\nent: %s\n", tostring( ply ), tostring( ent ) ) )
+            end
+
+        elseif type == 3 then
+            netvar.copy( ent, Entity( net.ReadUInt( 16 ) ), ply )
         end
     end )
 
@@ -475,6 +478,20 @@ function netvar.install( ent, install, default, restore )
     if SERVER then ent.netvar_syncData = true end
 end
 
+if SERVER then
+    function netvar.copy( ent1, ent2, ply )
+        local check = IsValid( ply ) and netvar.canEdit or netvar.isValid
+        if not check( ent1, ply ) or not check( ent2, ply ) then return end
+
+        local vars = ent1.netvar.variables
+        local vals = ent1.netvar.values
+        local ents = ent1.netvar.entities
+
+        netvar.install( ent1, vars, vals, ent2.netvar.values )
+        ent1.netvar.entities = ents
+    end
+end
+
 function netvar.setVar( ent, name, index, newval, forceUpdate )
     if not netvar.isValid( ent ) then return end
 
@@ -544,22 +561,41 @@ function netvar.setLinks( ent, tbl, ply )
     return entities
 end
 
-function netvar.addLinks( e, n1, n2 )
-    if not isstring( n1 ) or ( n2 and not isstring( n2 ) ) then return end
+if CLIENT then
+    function netvar.addToolLink( e, n1, f1, h1 )
+        if not isstring( n1 ) then return end
+        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
 
-    if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
+        table.insert( e.tanktracktool_linkData, {
+            name = n1,
+            --tool_bind = "rmb",
+            tool_filter = isfunction( f1 ) and f1 or nil,
+            tool_hud = isfunction( h1 ) and h1 or nil,
+        } )
+    end
 
-    if not n2 then
-        table.insert( e.tanktracktool_linkData, { name = n1, tool_bind = "rmb" } )
-    else
+    function netvar.addToolLinks( e, n1, f1, h1, n2, f2, h2 )
+        if not isstring( n1 ) then return end
+        if not isstring( n2 ) then return end
+        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
+
         table.insert( e.tanktracktool_linkData, {
             istable = true,
-            { name = n1, tool_bind = "rmb" },
-            { name = n2, tool_bind = "rmb+shift" },
+            {
+                name = n1,
+                ---tool_bind = "rmb",
+                tool_filter = isfunction( f1 ) and f1 or nil,
+                tool_hud = isfunction( h1 ) and h1 or nil,
+            },
+            {
+                name = n2,
+                --tool_bind = "rmb+shift",
+                tool_filter = isfunction( f2 ) and f2 or nil,
+                tool_hud = isfunction( h2 ) and h2 or nil,
+            },
         } )
     end
 end
-
 
 --[[
     duplicator support

@@ -7,7 +7,6 @@ if SERVER then
     AddCSLuaFile( "tanktracktool/netvar.lua" )
     AddCSLuaFile( "tanktracktool/property.lua" )
 
-    AddCSLuaFile( "tanktracktool/client/linker.lua" )
     AddCSLuaFile( "tanktracktool/client/render/mode.lua" )
     AddCSLuaFile( "tanktracktool/client/render/effects.lua" )
     AddCSLuaFile( "tanktracktool/client/render/autotracks.lua" )
@@ -36,7 +35,6 @@ if CLIENT then
     include( "tanktracktool/netvar.lua" )
     include( "tanktracktool/property.lua" )
 
-    include( "tanktracktool/client/linker.lua" )
     include( "tanktracktool/client/render/mode.lua" )
     include( "tanktracktool/client/render/effects.lua" )
     include( "tanktracktool/client/render/autotracks.lua" )

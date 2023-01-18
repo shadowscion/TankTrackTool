@@ -32,8 +32,8 @@ local _mmat = Matrix()
 local _mmat_setTranslation, _mmat_setAngles =
       _mmat.SetTranslation, _mmat.SetAngles
 
-local cv_md = CreateClientConVar( "tanktracktool_detail_max", "8", true, false, "maximum track render quality", 4, 16 )
-local cv_ad = CreateClientConVar( "tanktracktool_detail_incr", "1", true, false, "enhance track render quality as speed increases" )
+local cv_md = CreateClientConVar( "tanktracktool_autotracks_detail_max", "8", true, false, "maximum track render quality", 4, 16 )
+local cv_ad = CreateClientConVar( "tanktracktool_autotracks_detail_incr", "1", true, false, "enhance track render quality as speed increases" )
 
 local tanktracktool = tanktracktool
 tanktracktool.autotracks = tanktracktool.autotracks or {}
@@ -46,6 +46,13 @@ function tanktracktool.autotracks.textureList()
     end
     return ret
 end
+
+local cv_ds = CreateClientConVar( "tanktracktool_autotracks_disable", "0", true, false, "disable rendering" )
+tanktracktool.disable_autotracks = cv_ds:GetBool()
+
+cvars.AddChangeCallback( "tanktracktool_autotracks_disable", function( convar_name, value_old, value_new )
+    tanktracktool.disable_autotracks = tobool( value_new )
+end )
 
 
 --

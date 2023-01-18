@@ -128,6 +128,11 @@ function ENT:autotracks_playGroundFX( pos, scale )
 end
 
 function ENT:Think()
+    if tanktracktool.disable_autotracks then
+        self.tanktracktool_reset = true
+        return
+    end
+
     self.BaseClass.Think( self )
 
     if self.tanktracktool_reset then
@@ -183,6 +188,8 @@ end
 
 function ENT:Draw()
     self:DrawModel()
+
+    if tanktracktool.disable_autotracks then return end
 
     if self.tanktracktool_mode then
         self.tanktracktool_visible = true

@@ -10,17 +10,10 @@ ENT.Category  = "tanktracktool"
 
 local tanktracktool = tanktracktool
 
-tanktracktool.netvar.addLinks( ENT, "Entity1" )
-tanktracktool.netvar.addLinks( ENT, "Entity2" )
 
-function ENT:netvar_setLinks( tbl, ply )
-    tbl = {
-        Entity1 = tbl.Entity1 or self.netvar.entities.Entity1,
-        Entity2 = tbl.Entity2 or self.netvar.entities.Entity2,
-    }
-    return tanktracktool.netvar.setLinks( self, tbl, ply )
-end
-
+--[[
+    wiremod setup
+]]
 if SERVER then
     function ENT:netvar_nme( data )
         return data
@@ -59,6 +52,31 @@ if SERVER then
     end
 end
 
+
+--[[
+    tool_link setup
+]]
+if CLIENT then
+    tanktracktool.netvar.addToolLink( ENT, "Entity1", nil, nil )
+    tanktracktool.netvar.addToolLink( ENT, "Entity2", nil, nil )
+end
+
+function ENT:netvar_setLinks( tbl, ply )
+    if not istable( tbl ) then
+        return tanktracktool.netvar.setLinks( self, {}, ply )
+    end
+
+    tbl = {
+        Entity1 = tbl.Entity1 or self.netvar.entities.Entity1,
+        Entity2 = tbl.Entity2 or self.netvar.entities.Entity2,
+    }
+    return tanktracktool.netvar.setLinks( self, tbl, ply )
+end
+
+
+--[[
+    netvar setup
+]]
 local netvar = tanktracktool.netvar.new()
 
 local default = {
@@ -162,6 +180,10 @@ if CLIENT then
     }
 end
 
+
+--[[
+    CLIENT
+]]
 if SERVER then return end
 
 local math, util, string, table, render =
@@ -171,6 +193,13 @@ local next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle,
       next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector
 
 local pi = math.pi
+
+local cv_ds = CreateClientConVar( "tanktracktool_pointbeam_disable", "0", true, false, "disable rendering" )
+tanktracktool.disable_pointbeam = cv_ds:GetBool()
+
+cvars.AddChangeCallback( "tanktracktool_pointbeam_disable", function( convar_name, value_old, value_new )
+    tanktracktool.disable_pointbeam = tobool( value_new )
+end )
 
 
 --[[
@@ -512,6 +541,12 @@ function mode:onDraw( controller, eyepos, eyedir, empty )
 end
 
 function ENT:Think()
+    if tanktracktool.disable_pointbeam then
+        self.tanktracktool_reset = true
+        mode:override( self, false )
+        return
+    end
+
     self.BaseClass.Think( self )
 
     if self.tanktracktool_reset then
