@@ -34,10 +34,10 @@ function ENT:Think()
 end
 
 if SERVER then
+    function ENT:UpdateTransmitState() return TRANSMIT_ALWAYS end
 
     local function getmodel( ply, class )
         local a = ply:GetInfo( "tanktracktool_spawn_model" )
-        print( a )
         if a and util.IsValidModel( a ) then return a end
 
         local b = scripted_ents.GetMember( class, "tanktracktool_model" )
@@ -171,14 +171,6 @@ end
 function ENT:netvar_getValues()
     return self.netvar.values
 end
-
-function ENT:netvar_getLinks()
-    return self.netvar.entities
-end
-
--- function ENT:netvar_setLinks( tbl, ply )
---     return tanktracktool.netvar.setLinks( self, tbl, ply )
--- end
 
 function ENT:netvar_callback( id, ... )
 end

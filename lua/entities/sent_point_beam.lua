@@ -12,9 +12,27 @@ local tanktracktool = tanktracktool
 
 
 --[[
-    wiremod setup
+    wiremod & tool_link setup
 ]]
+if CLIENT then
+    tanktracktool.netvar.addToolLink( ENT, "Entity1", nil, nil )
+    tanktracktool.netvar.addToolLink( ENT, "Entity2", nil, nil )
+end
+
 if SERVER then
+    function ENT:netvar_setLinks( tbl, ply )
+        if not istable( tbl ) then
+            return tanktracktool.netvar.setLinks( self, {}, ply )
+        end
+
+        tbl = {
+            Entity1 = isentity( tbl.Entity1 ) and tbl.Entity1 or nil,
+            Entity2 = isentity( tbl.Entity2 ) and tbl.Entity2 or nil,
+        }
+
+        return tanktracktool.netvar.setLinks( self, tbl, ply )
+    end
+
     function ENT:netvar_nme( data )
         return data
     end
@@ -50,27 +68,6 @@ if SERVER then
     function ENT:TriggerInput( name, value )
         if inputs[name] then inputs[name]( self, WireLib and WireLib.GetOwner( self ), value ) end
     end
-end
-
-
---[[
-    tool_link setup
-]]
-if CLIENT then
-    tanktracktool.netvar.addToolLink( ENT, "Entity1", nil, nil )
-    tanktracktool.netvar.addToolLink( ENT, "Entity2", nil, nil )
-end
-
-function ENT:netvar_setLinks( tbl, ply )
-    if not istable( tbl ) then
-        return tanktracktool.netvar.setLinks( self, {}, ply )
-    end
-
-    tbl = {
-        Entity1 = tbl.Entity1 or self.netvar.entities.Entity1,
-        Entity2 = tbl.Entity2 or self.netvar.entities.Entity2,
-    }
-    return tanktracktool.netvar.setLinks( self, tbl, ply )
 end
 
 
@@ -274,7 +271,6 @@ function mode:onInit( controller )
     local data = self:getData( controller )
 
     data.vars = controller:netvar_getValues()
-    data.ents = controller:netvar_getLinks()
 
     data.pointCount = math.abs( data.vars.pointCount or 10 )
     data.pointMulti = math.Clamp( data.vars.pointMulti or 1, 1, 4 )
@@ -341,13 +337,6 @@ function mode:onInit( controller )
     end
 
     data.beams = {}
-end
-
-local function GetEntity( self, netkey, netlink )
-    if netkey then netkey = self:GetNW2Entity( netkey ) end
-    if IsValid( netkey ) then return netkey else
-        return IsValid( netlink ) and netlink or self
-    end
 end
 
 local emitter = ParticleEmitter( Vector() )
@@ -419,6 +408,13 @@ local function CreateBeam( controller, ent1, ent2, pos1, pos2, data, fx )
     return beam
 end
 
+local function GetEntity( self, netkey, netlink )
+    if netkey then netkey = self:GetNW2Entity( netkey ) end
+    if IsValid( netkey ) then return netkey else
+        return IsValid( netlink ) and netlink or self
+    end
+end
+
 function mode:onThink( controller )
     local data = self:getData( controller )
 
@@ -427,8 +423,16 @@ function mode:onThink( controller )
         return
     end
 
-    local ent1 = GetEntity( controller, "netwire_Entity1", data.ents.Entity1 )
-    local ent2 = GetEntity( controller, "netwire_Entity2", data.ents.Entity2 )
+    if not controller.netvar.entities then
+        local t = {}
+        for k, v in pairs( controller.netvar.entindex ) do
+            t[k] = IsValid( Entity( v ) ) and Entity( v ) or nil
+        end
+        controller.netvar.entities = t
+    end
+
+    local ent1 = GetEntity( controller, "netwire_Entity1", controller.netvar.entities.Entity1 )
+    local ent2 = GetEntity( controller, "netwire_Entity2", controller.netvar.entities.Entity1 )
     local pos1 = ent1:LocalToWorld( controller:GetNW2Vector( "netwire_Offset1" ), Vector() )
     local pos2 = ent2:LocalToWorld( controller:GetNW2Vector( "netwire_Offset2" ), Vector() )
 

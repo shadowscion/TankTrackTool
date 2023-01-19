@@ -3,7 +3,7 @@ AddCSLuaFile()
 DEFINE_BASECLASS( "base_tanktracktool" )
 
 ENT.Type      = "anim"
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.Category  = "tanktracktool"
 
@@ -19,17 +19,19 @@ if CLIENT then
     tanktracktool.netvar.addToolLink( ENT, "RightWheel", nil, nil )
 end
 
-function ENT:netvar_setLinks( tbl, ply )
-    if not istable( tbl ) then
-        return tanktracktool.netvar.setLinks( self, {}, ply )
-    end
+if SERVER then
+    function ENT:netvar_setLinks( tbl, ply )
+        if not istable( tbl ) then
+            return tanktracktool.netvar.setLinks( self, {}, ply )
+        end
 
-    tbl = {
-        Chassis = tbl.Chassis or self.netvar.entities.Chassis,
-        LeftWheel = tbl.LeftWheel or self.netvar.entities.LeftWheel,
-        RightWheel = tbl.RightWheel or self.netvar.entities.RightWheel,
-    }
-    return tanktracktool.netvar.setLinks( self, tbl, ply )
+        tbl = {
+            Chassis = tbl.Chassis or self.netvar.entities.Chassis,
+            LeftWheel = tbl.LeftWheel or self.netvar.entities.LeftWheel,
+            RightWheel = tbl.RightWheel or self.netvar.entities.RightWheel,
+        }
+        return tanktracktool.netvar.setLinks( self, tbl, ply )
+    end
 end
 
 

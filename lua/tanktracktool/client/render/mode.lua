@@ -218,9 +218,14 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
         draws[controller] = bDraw and self or nil
     end
 
+    function meta:setnodraw( controller, bDraw )
+        controller.tanktracktool_modeData_nodraw = bDraw
+    end
+
     function meta:init( controller )
         draws[controller] = nil
 
+        controller.tanktracktool_modeData_nodraw  = nil
         controller.tanktracktool_modeData_audible = true -- can think
         controller.tanktracktool_modeData_visible = nil  -- can draw
         controller.tanktracktool_modeData = { csents = {}, parts = {}, data = {} }
@@ -237,14 +242,14 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
     end
 
     function meta:draw( controller )
-        if not controller.tanktracktool_modeData_visible then return end
+        if controller.tanktracktool_modeData_nodraw or not controller.tanktracktool_modeData_visible then return end
         self:onDraw( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
     end
 
     function meta:think( controller )
         if not controller.tanktracktool_modeData_audible then return end
         controller.tanktracktool_modeData_visible = true
-        self:onThink( controller )
+        self:onThink( controller, eyepos, eyedir )
     end
 
     function meta:addCSent( ... )

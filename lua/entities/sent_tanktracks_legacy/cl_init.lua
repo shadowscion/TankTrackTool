@@ -3,6 +3,14 @@ include( "shared.lua" )
 
 local tanktracktool =  tanktracktool
 
+local math, util, string, table, render =
+      math, util, string, table, render
+
+local next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector =
+      next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector
+
+local pi = math.pi
+
 
 --[[
     tool_link setup
@@ -86,7 +94,7 @@ end
 
 
 --[[
-    base ent
+    mode
 ]]
 local function real_radius( ent )
     if ent:GetHitBoxBounds( 0, 0 ) then
@@ -102,9 +110,7 @@ local function GetAngularVelocity( ent, pos, ang )
     local ang = math.deg( math.atan2( dir.z, dir.x ) )
 
     ent.m_DeltaAngle = ent.m_DeltaAngle or 0
-
     local ang_vel = ( ang - ent.m_DeltaAngle + 180 ) % 360 - 180
-
     ent.m_DeltaAngle = ang
 
     return ang_vel --/ FrameTime()
@@ -113,44 +119,31 @@ end
 local mode = tanktracktool.render.mode()
 
 function mode:onInit( controller )
-    local entities = controller.netvar.entities
-
-    controller.autotracks_chassis = entities[1]
-    if not IsValid( controller.autotracks_chassis ) or not table.IsSequential( entities ) then
-        return false
-    end
-
     local values = controller.netvar.values
 
-    controller.autotracks_trackvalues = {
-        trackColor = values.trackColor,
-        trackMaterial = values.trackMaterial,
-        trackWidth = values.trackWidth,
-        trackHeight = values.trackHeight,
-        trackGuideY = values.trackGuideY,
-        trackGrouser = values.trackGrouser,
-        trackTension = values.trackTension,
-        trackRes = values.trackRes,
-        trackFlip = values.trackFlip,
-    }
-
-    controller.autotracks_rotate = values.systemRotate ~= 0 and Angle( 0, -90, 0 ) or nil
-    controller:autotracks_setMatrix()
-    local pos, ang = controller:autotracks_getMatrix()
-
-    controller.tanktracktool_modeData.parts = {}
-    local parts = controller.tanktracktool_modeData.parts
-
-    for i = 2, #entities do
-        local wheel = entities[i]
-        if IsValid( wheel ) then
-            local part = { { entity = wheel, radius = real_radius( wheel ) } }
-            part.index = table.insert( parts, part )
-            part[1][1] = WorldToLocal( wheel:GetPos(), wheel:GetAngles(), pos, ang )
-        end
+    controller.autotracks_matrixRotate = tobool( values.systemRotate ) and Angle( 0, -90, 0 )
+    controller.autotracks_matrix = controller.autotracks_chassis:GetWorldTransformMatrix()
+    if controller.autotracks_matrixRotate then
+        controller.autotracks_matrix:Rotate( controller.autotracks_matrixRotate )
     end
 
-    if #parts == 0 then return false end
+    local pos = controller.autotracks_matrix:GetTranslation()
+    local ang = controller.autotracks_matrix:GetAngles()
+
+    local parts = self:getParts( controller )
+
+    for i = 1, #controller.autotracks_wheels do
+        local wheel = controller.autotracks_wheels[i]
+
+        table.insert( parts, {
+            index = i,
+            {
+                entity = wheel,
+                radius = real_radius( wheel ),
+                [1] = WorldToLocal( wheel:GetPos(), wheel:GetAngles(), pos, ang ),
+            }
+        } )
+    end
 
     local rollercount = 0
     for i = 1, #parts do
@@ -166,6 +159,18 @@ function mode:onInit( controller )
         end
     end
 
+    controller.autotracks_trackvalues = {
+        trackColor = values.trackColor,
+        trackMaterial = values.trackMaterial,
+        trackWidth = values.trackWidth,
+        trackHeight = values.trackHeight,
+        trackGuideY = values.trackGuideY,
+        trackGrouser = values.trackGrouser,
+        trackTension = values.trackTension,
+        trackRes = values.trackRes,
+        trackFlip = values.trackFlip,
+    }
+
     controller.autotracks_rollercount = rollercount
     controller.autotracks_trackoffset = parts[1][1][1].y + ( controller.autotracks_trackvalues.trackFlip ~= 0 and -1 or 1 ) * values.trackOffsetY
     controller.autotracks_sprocket = math.Clamp( values.wheelSprocket, 1, #parts )
@@ -175,24 +180,47 @@ function mode:onInit( controller )
 
     tanktracktool.autotracks.setup( controller )
     tanktracktool.autotracks.think( controller )
-
     self:override( controller, true )
 end
 
-function mode:updateTracks( controller, pos, ang )
-    local parts = controller.tanktracktool_modeData.parts
-    if not parts then return end
+
+function mode:onThink( controller, eyepos, eyedir )
+    controller.autotracks_data_ready = nil
+
+    if not IsValid( controller.autotracks_chassis ) then
+        controller.tanktracktool_reset = true
+        return
+    end
+
+    if controller.autotracks_chassis:IsDormant() then
+        return
+    end
+
+    for i = 1, #controller.autotracks_wheels do
+        if not IsValid( controller.autotracks_wheels[i] ) then
+            controller.tanktracktool_reset = true
+            print( "invalid wheell " )
+            return
+        end
+    end
+
+    local parts = self:getParts( controller )
+
+    controller.autotracks_matrix = controller.autotracks_chassis:GetWorldTransformMatrix()
+    if controller.autotracks_matrixRotate then
+        controller.autotracks_matrix:Rotate( controller.autotracks_matrixRotate )
+    end
+
+    local pos, ang = controller.autotracks_matrix:GetTranslation(), controller.autotracks_matrix:GetAngles()
+
+    local dir = pos - eyepos
+    if dir:Dot( eyedir ) / dir:Length() < -0.75 then return end
 
     local sprocket = controller.autotracks_sprocket
 
     for i = 1, #parts do
         local wheel = parts[i][1]
         local ent = wheel.entity
-
-        if not IsValid( ent ) then
-            controller.tanktracktool_reset = true
-            return
-        end
 
         wheel[1] = WorldToLocal( ent:GetPos(), ent:GetAngles(), pos, ang )
         wheel[1].y = controller.autotracks_trackoffset
@@ -204,68 +232,73 @@ function mode:updateTracks( controller, pos, ang )
     end
 
     tanktracktool.autotracks.think( controller )
-
-    return controller.autotracks_data_ready
 end
 
-function mode:onDraw( controller, eyepos, eyedir, empty )
-    if not IsValid( controller ) then
-        self:override( controller, false )
-        return
-    end
-    if not IsValid( controller.autotracks_chassis ) then
-        self:override( controller, false )
-        return
-    end
 
-    if controller.autotracks_chassis:IsDormant() then return end
+function mode:onDraw( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
+    local pos, ang = controller.autotracks_matrix:GetTranslation(), controller.autotracks_matrix:GetAngles()
 
-    controller:autotracks_setMatrix()
-    local pos, ang = controller:autotracks_getMatrix()
+    if controller.autotracks_data_ready and emptyCSENT then
+        local matrix = controller.autotracks_matrix
+        local pos, ang = matrix:GetTranslation(), matrix:GetAngles()
 
-    local dot = eyedir:Dot( pos - eyepos )
-    if dot < 0 and math.abs( dot ) > 100 then return end
-
-    if empty and self:updateTracks( controller, pos, ang ) then
         render.SetBlend( 0 )
-        empty:SetPos( pos )
-        empty:SetAngles( ang )
-        empty:SetupBones()
-        empty:DrawModel()
+        emptyCSENT:SetPos( pos )
+        emptyCSENT:SetAngles( ang )
+        emptyCSENT:SetupBones()
+        emptyCSENT:DrawModel()
         render.SetBlend( 1 )
 
-        tanktracktool.autotracks.render( controller, controller.autotracks_matrix )
+        tanktracktool.autotracks.render( controller, matrix )
     end
-end
-
-function ENT:autotracks_setMatrix()
-    self.autotracks_matrix = self.autotracks_chassis:GetWorldTransformMatrix()
-    if self.autotracks_rotate then
-        self.autotracks_matrix:Rotate( self.autotracks_rotate )
-    end
-end
-
-function ENT:autotracks_getMatrix()
-    if not self.autotracks_matrix then
-        return self.autotracks_chassis:GetPos(), self.autotracks_chassis:GetAngles()
-    end
-    return self.autotracks_matrix:GetTranslation(), self.autotracks_matrix:GetAngles()
 end
 
 function ENT:Think()
     if tanktracktool.disable_autotracks then
+        self.netvar_syncData = nil
+        self.netvar_syncLink = nil
         self.tanktracktool_reset = true
+
         mode:override( self, false )
+
         return
     end
 
     self.BaseClass.Think( self )
 
     if self.tanktracktool_reset then
-        self.tanktracktool_reset = nil
+        if not self.netvar.entities then
+            local e = {}
+            for k, v in pairs( self.netvar.entindex ) do
+                if IsValid( Entity( v ) ) then
+                    e[k] = Entity( v )
+                else
+                    return
+                end
+            end
+
+            self.netvar.entities = e
+
+            return
+        end
+
+        self.autotracks_chassis = self.netvar.entities[1]
+        if not IsValid( self.autotracks_chassis ) then return end
+
+        self.autotracks_wheels = {}
+        for k, v in SortedPairs( self.netvar.entities ) do
+            if k ~= 1 and IsValid( v ) then table.insert( self.autotracks_wheels, v ) end
+        end
+
+        if #self.autotracks_wheels == 0 then return end
+
         mode:init( self )
+        self.tanktracktool_reset = nil
+
         return
     end
+
+    mode:think( self )
 end
 
 function ENT:Draw()

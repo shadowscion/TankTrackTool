@@ -25,7 +25,9 @@ if SERVER then
 
 
     --[[
-        receive specific variable edits
+        client sends a table of edits to server
+        server checks and sets the edits
+        server sends the changes to all clients
     ]]
     net.Receive( netmsg_netvars_edit, function( len, ply )
         local ent = Entity( net.ReadUInt( 16 ) )
@@ -41,7 +43,9 @@ if SERVER then
 
 
     --[[
-        receive full update requests
+        client needs a full data sync
+        server adds client name to list
+        server sends data to clients
     ]]
     net.Receive( netmsg_netvars_data, function( len, ply )
         local ent = Entity( net.ReadUInt( 16 ) )
@@ -61,7 +65,23 @@ if SERVER then
 
 
     --[[
-        receive link update requests
+        0
+            client needs a link sync
+            server adds client name to list
+            server sends links to clients
+
+        1
+            client wants to edit links
+            server checks and sends new links to clients
+
+        2
+            client wants to remove all links
+            server checks and sends new links to clients
+
+        3
+            client wants to copy values from controller A to controller B
+            server sends the changes to all clients
+            ( this should be in the edit netfunc but oh well )
     ]]
     net.Receive( netmsg_netvars_link, function( len, ply )
         local ent = Entity( net.ReadUInt( 16 ) )
@@ -106,7 +126,7 @@ if SERVER then
 
 
     --[[
-        satisfy full update requests
+        servercompressees and sends all data to players
     ]]
     function netvar.transmitData( ent, sendTo )
         if not netvar.isValid( ent ) then return end
@@ -124,14 +144,19 @@ if SERVER then
 
 
     --[[
-        satisfy link update requests
+        server sends table of link entIndexes to players
     ]]
     function netvar.transmitLink( ent, sendTo )
         if not netvar.isValid( ent ) then return end
 
         net.Start( netmsg_netvars_link )
         net.WriteUInt( ent:EntIndex(), 16 )
-        net.WriteTable( ent.netvar.entities )
+
+        local valid = {}
+        for k, v in pairs( ent.netvar.entities ) do
+            if IsValid( v ) then valid[k] = v:EntIndex() end
+        end
+        net.WriteTable( valid )
 
         if sendTo == true then net.Broadcast() else net.Send( table.GetKeys( sendTo ) ) end
     end
@@ -139,7 +164,7 @@ if SERVER then
 else
 
     --[[
-        receive specific update
+        client recieves a variable edit
     ]]
     net.Receive( netmsg_netvars_edit, function( len )
         local ent = Entity( net.ReadUInt( 16 ) )
@@ -155,7 +180,7 @@ else
 
 
     --[[
-        receive full update
+        client recieves a data sync
     ]]
     net.Receive( netmsg_netvars_data, function( len )
         local ent = Entity( net.ReadUInt( 16 ) )
@@ -174,14 +199,17 @@ else
 
 
     --[[
-        receive link update
+        client recieves a link sync
     ]]
     net.Receive( netmsg_netvars_link, function( len )
         local ent = Entity( net.ReadUInt( 16 ) )
         if not netvar.isValid( ent ) then return end
 
-        ent.netvar.entities = net.ReadTable()
-        ent:netvar_callback( "netvar_syncLink", ent.netvar.entities )
+        local t = net.ReadTable()
+
+        ent.netvar.entities = nil
+        ent.netvar.entindex = t
+        ent:netvar_callback( "netvar_syncLink", ent.netvar.entindex )
 
         if tanktracktool.loud( tanktracktool.loud_link ) then
             tanktracktool.note( string.format( "receiving link\nent: %s\n", tostring( ent ) ) )
@@ -190,7 +218,8 @@ else
 
 
     --[[
-        send full update request
+        these hooks ensure a sync check on game join
+        handled in ENT:netvar_transmit()
     ]]
     hook.Add( "NotifyShouldTransmit", "tanktracktool_resync", function( ent, bool )
         if bool then
@@ -208,7 +237,7 @@ else
 
 
     --[[
-        send specific edit
+        client sends an edit request to server
     ]]
     function netvar.transmitEdit( ent, name, index, val )
         if not netvar.isValid( ent ) then return end
@@ -225,7 +254,7 @@ else
 
 
     --[[
-        send data request
+        client sends an data request to server
     ]]
     function netvar.transmitData( ent )
         if not netvar.isValid( ent ) then return end
@@ -241,7 +270,7 @@ else
 
 
     --[[
-        send link request
+        client sends an link request to server
     ]]
     function netvar.transmitLink( ent, tbl )
         if not netvar.isValid( ent ) then return end
@@ -261,7 +290,7 @@ end
 
 
 --[[
-    validators
+    base_tanktracktool validators and permissions
 ]]
 function netvar.isValid( ent )
     if not IsValid( ent ) then return false end
@@ -282,7 +311,7 @@ end
 
 
 --[[
-    safe setters
+    safe variable setters
 ]]
 netvar.sanitizer = {}
 
@@ -309,7 +338,8 @@ function netvar.sanitizer.float( value, data )
 end
 
 function netvar.sanitizer.string( value, data )
-    if data.numeric then return tostring( tonumber( value or 0 ) or 0 ) else return tostring( value or "" ) or "" end
+    if data.numeric then value = tostring( tonumber( value or 0 ) or 0 ) else value = tostring( value or "" ) or "" end
+    if string.len( value ) < 255 then return value else return string.sub( value, 1, 255 ) end
 end
 
 function netvar.sanitizer.color( value, data )
@@ -449,7 +479,7 @@ function netvar.install( ent, install, default, restore )
     if not istable( restore ) then restore = nil end
     if not istable( default ) then default = nil end
 
-    ent.netvar = { entities = {}, values = {}, variables = install }
+    ent.netvar = { entindex = {}, values = {}, variables = install }
 
     for k, var in ipairs( ent.netvar.variables.data.n ) do
         local def = var.data.def
@@ -475,20 +505,9 @@ function netvar.install( ent, install, default, restore )
         end
     end
 
-    if SERVER then ent.netvar_syncData = true end
-end
-
-if SERVER then
-    function netvar.copy( ent1, ent2, ply )
-        local check = IsValid( ply ) and netvar.canEdit or netvar.isValid
-        if not check( ent1, ply ) or not check( ent2, ply ) then return end
-
-        local vars = ent1.netvar.variables
-        local vals = ent1.netvar.values
-        local ents = ent1.netvar.entities
-
-        netvar.install( ent1, vars, vals, ent2.netvar.values )
-        ent1.netvar.entities = ents
+    if SERVER then
+        ent.netvar.entities = {}
+        ent.netvar_syncData = true
     end
 end
 
@@ -543,78 +562,59 @@ function netvar.getVar( ent, name, index )
     return ent.netvar.values[name]
 end
 
-function netvar.setLinks( ent, tbl, ply )
-    if not netvar.isValid( ent ) then return false end
-    if not istable( tbl ) then return false end
-
-    local entities = {}
-    for k, v in pairs( tbl ) do
-        if not isentity( v ) or not IsValid( v ) then return false end
-        if ply and not netvar.canLink( v, ply ) then return false end
-        entities[k] = v
-    end
-
-    ent.netvar.entities = entities
-
-    if SERVER then ent.netvar_syncLink = true end
-
-    return entities
-end
-
-if CLIENT then
-    function netvar.addToolLink( e, n1, f1, h1 )
-        if not isstring( n1 ) then return end
-        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
-
-        table.insert( e.tanktracktool_linkData, {
-            name = n1,
-            --tool_bind = "rmb",
-            tool_filter = isfunction( f1 ) and f1 or nil,
-            tool_hud = isfunction( h1 ) and h1 or nil,
-        } )
-    end
-
-    function netvar.addToolLinks( e, n1, f1, h1, n2, f2, h2 )
-        if not isstring( n1 ) then return end
-        if not isstring( n2 ) then return end
-        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
-
-        table.insert( e.tanktracktool_linkData, {
-            istable = true,
-            {
-                name = n1,
-                ---tool_bind = "rmb",
-                tool_filter = isfunction( f1 ) and f1 or nil,
-                tool_hud = isfunction( h1 ) and h1 or nil,
-            },
-            {
-                name = n2,
-                --tool_bind = "rmb+shift",
-                tool_filter = isfunction( f2 ) and f2 or nil,
-                tool_hud = isfunction( h2 ) and h2 or nil,
-            },
-        } )
-    end
-end
-
---[[
-    duplicator support
-]]
 if SERVER then
+    function netvar.copy( ent1, ent2, ply )
+        local check = IsValid( ply ) and netvar.canEdit or netvar.isValid
+        if not check( ent1, ply ) or not check( ent2, ply ) then return end
 
+        local vars = ent1.netvar.variables
+        local vals = ent1.netvar.values
+        local ents = ent1.netvar.entities
+        local eidx  = ent1.netvar.entindex
+
+        netvar.install( ent1, vars, vals, ent2.netvar.values )
+        ent1.netvar.entities = ents
+        ent1.netvar.entindex = eidx
+    end
+
+    function netvar.setLinks( ent, tbl, ply )
+        if not netvar.isValid( ent ) then return false end
+        if not istable( tbl ) then return false end
+
+        local entities = {}
+        local entindex = {}
+
+        for k, v in pairs( tbl ) do
+            if not isentity( v ) or not IsValid( v ) then return false end
+            if ply and not netvar.canLink( v, ply ) then return false end
+            entities[k] = v
+            entindex[k] = v:EntIndex()
+        end
+
+        ent.netvar.entities = entities
+        ent.netvar.entindex = entindex
+
+        if SERVER then ent.netvar_syncLink = true end
+
+        return entities
+    end
+
+
+    --[[
+        duplicator support
+    ]]
     function netvar.getDupe( ent )
         if not netvar.isValid( ent ) then return end
 
         local links = {}
-        --if table.IsSequential( ent.netvar.entities ) then
-            for k, v in pairs( ent.netvar.entities ) do
-                if not IsValid( v ) then
-                    links = {}
-                    break
-                end
-                links[k] = v:EntIndex()
+
+        for k, v in pairs( ent.netvar.entities ) do
+            if not IsValid( v ) then
+                links = {}
+                break
             end
-        --end
+            links[k] = v:EntIndex()
+        end
 
         return { data = ent.netvar.values, links = links }
     end
@@ -663,6 +663,36 @@ if SERVER then
             ent:netvar_setLinks( linked )
         end
     end
+else
+    function netvar.addToolLink( e, n1, f1, h1 )
+        if not isstring( n1 ) then return end
+        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
 
+        table.insert( e.tanktracktool_linkData, {
+            name = n1,
+            --tool_bind = "rmb",
+            tool_filter = isfunction( f1 ) and f1 or nil,
+            tool_hud = isfunction( h1 ) and h1 or nil,
+        } )
+    end
+
+    function netvar.addToolLinks( e, n1, f1, h1, n2, f2, h2 )
+        if not isstring( n1 ) then return end
+        if not isstring( n2 ) then return end
+        if not e.tanktracktool_linkData then e.tanktracktool_linkData = {} end
+
+        table.insert( e.tanktracktool_linkData, {
+            istable = true,
+            {
+                name = n1,
+                tool_filter = isfunction( f1 ) and f1 or nil,
+                tool_hud = isfunction( h1 ) and h1 or nil,
+            },
+            {
+                name = n2,
+                tool_filter = isfunction( f2 ) and f2 or nil,
+                tool_hud = isfunction( h2 ) and h2 or nil,
+            },
+        } )
+    end
 end
-
