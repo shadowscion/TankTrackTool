@@ -378,3 +378,77 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
 
     return meta
 end
+
+
+--[[
+    coil part
+]]
+function tanktracktool.render.createCoil()
+    local wireMaterial = Material( "tanktracktool/suspension/cable_white" )
+    local wireColor = Color( 255, 255, 255, 255 )
+    local wireRadius = 1
+    local radius = 8
+    local detail = 1 / 4
+    local coilCount = 4 * math.pi * 2
+    local points = {}
+    local pcount = 0
+
+    local self = {}
+
+    function self:setDetail( n )
+        detail = n
+    end
+    function self:setCoilCount( n )
+        coilCount = n * math.pi * 2
+    end
+    function self:setRadius( n )
+        radius = n
+    end
+    function self:setWireRadius( n )
+        wireRadius = n
+    end
+    function self:setMaterial( s )
+        wireMaterial = Material( s )
+    end
+    function self:setColor( c )
+        wireColor = Color( c.r, c.g, c.b, c.a )
+    end
+
+    local noAngle = Angle()
+
+    function self:think( p0, p1, origin )
+        local dir = p1 - p0
+        local len = dir:Length()
+        local ang = dir:Angle()
+
+        local c = coilCount
+        local p = len / c
+        local t = len / p
+        local r = radius
+
+        points = {}
+        for i = 0, t, detail do
+            points[#points + 1] = LocalToWorld( Vector( p * i, r * math.sin( i ), r * math.cos( i ) ), noAngle, origin, ang )
+        end
+
+        pcount = #points
+    end
+
+    function self:draw()
+        local color = wireColor
+        local radius = wireRadius
+        local points = points
+        local pcount = pcount
+
+        render.SetMaterial( wireMaterial )
+        render.StartBeam( pcount )
+
+        for i = 1, pcount do
+            render.AddBeam( rawget( points, i ), radius, i / pcount, color )
+        end
+
+        render.EndBeam()
+    end
+
+    return self
+end

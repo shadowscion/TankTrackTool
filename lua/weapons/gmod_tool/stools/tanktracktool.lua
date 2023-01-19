@@ -203,23 +203,29 @@ local function rgb( color, a )
     return Color( color.r / 255, color.g / 255, color.b / 255, a )
 end
 
+local default_colors = {
+    text_class = Color( 255, 255, 0 ),
+    text_keyword = Color( 0, 255, 255 ),
+    text_input = Color( 0, 255, 0 ),
+    text_plain = Color( 255, 255, 255 ),
+}
+
 multitool.ui = {}
 
 multitool.ui.colors = {}
-multitool.ui.colors.text_class = Color( 255, 125, 0 )
-multitool.ui.colors.text_keyword = Color( 125, 255, 255 )
-multitool.ui.colors.text_input = Color( 0, 255, 0 )
-multitool.ui.colors.text_plain = Color( 227, 223, 255 )
-multitool.ui.colors.text_box = Color( 0, 0, 0, 100 )
+multitool.ui.colors.text_class = default_colors.text_class
+multitool.ui.colors.text_keyword = default_colors.text_keyword
+multitool.ui.colors.text_input = default_colors.text_input
+multitool.ui.colors.text_plain = default_colors.text_plain
+multitool.ui.colors.text_box = Color( 0, 0, 0, 200 )
 
 multitool.ui.colors.text_linked = Color( multitool.ui.colors.text_class.r, multitool.ui.colors.text_class.g, multitool.ui.colors.text_class.b, 200 )
-multitool.ui.colors.text_linked_box = Color( 0, 0, 0, 100 )
+multitool.ui.colors.text_linked_box = Color( 0, 0, 0, 150 )
 
 multitool.ui.colors.ents_bbox = Color( 255, 255, 255, 66 )
 multitool.ui.colors.ents_possible = rgb( multitool.ui.colors.text_plain, 0.333 )
-multitool.ui.colors.ents_selected = rgb( multitool.ui.colors.text_class, 0.333 )
-multitool.ui.colors.ents_hovered = rgb( multitool.ui.colors.text_keyword, 0.333 )
-
+multitool.ui.colors.ents_selected = rgb( multitool.ui.colors.text_keyword, 0.333 )
+multitool.ui.colors.ents_hovered = rgb( multitool.ui.colors.text_class, 0.333 )
 
 multitool.ui.fonts = {}
 multitool.ui.fonts.small = "tanktracktool_stool0"
@@ -1018,6 +1024,7 @@ local function BuildPanel_EntitySettings( self )
     combo:AddChoice( "sent_tanktracks_auto", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_tanktracks_legacy", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_point_beam", nil, nil, "icon16/bullet_blue.png" )
+    combo:AddChoice( "sent_suspension_coil", nil, nil, "icon16/bullet_blue.png" )
 
     combo.OnSelect = function( _, id, val, func )
         combo:SetText( "Spawn entity..." )

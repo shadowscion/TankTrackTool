@@ -4,7 +4,7 @@ AddCSLuaFile()
 DEFINE_BASECLASS( "base_tanktracktool" )
 
 ENT.Type      = "anim"
-ENT.Spawnable = false
+ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.Category  = "tanktracktool"
 
@@ -25,9 +25,10 @@ if SERVER then
         end
 
         tbl = {
-            Entity1 = tbl.Entity1 or self.netvar.entities.Entity1,
-            Entity2 = tbl.Entity2 or self.netvar.entities.Entity2,
+            Entity1 = isentity( tbl.Entity1 ) and tbl.Entity1 or nil,
+            Entity2 = isentity( tbl.Entity2 ) and tbl.Entity2 or nil,
         }
+
         return tanktracktool.netvar.setLinks( self, tbl, ply )
     end
 
@@ -118,41 +119,55 @@ end
 ]]
 local mode = tanktracktool.render.mode()
 
-local function GetEntity( self, entID, netID )
-    if netID then
-        netID = self:GetNW2Entity( netID, nil )
-        if IsValid( netID ) then
-            return netID
+local function GetEntities( self )
+    if not self.netvar.entities and ( self.netvar.entindex.Entity1 and self.netvar.entindex.Entity2 ) then
+        local e1 = Entity( self.netvar.entindex.Entity1 )
+        local e2 = Entity( self.netvar.entindex.Entity2 )
+
+        if IsValid( e1 ) and IsValid( e2 ) then
+            self.netvar.entities = { Entity1 = e1, Entity2 = e2 }
         end
     end
 
-    if not self.netvar.entindex[entID] then
-        return nil
+    local e1 = self:GetNW2Entity( "netwire_Entity1", nil )
+    local e2 = self:GetNW2Entity( "netwire_Entity2", nil )
+
+    if not IsValid( e1 ) then
+        e1 = self.netvar.entities and IsValid( self.netvar.entities.Entity1 ) and self.netvar.entities.Entity1 or nil
+    end
+    if not IsValid( e2 ) then
+        e2 = self.netvar.entities and IsValid( self.netvar.entities.Entity2 ) and self.netvar.entities.Entity2 or nil
     end
 
-    local e = Entity( self.netvar.entindex[entID] )
-    return IsValid( e ) and e or nil
+    return e1, e2
 end
 
 function mode:onInit( controller )
     self:override( controller, true )
+    local data = self:getData( controller )
+
+    data.helix = tanktracktool.render.createCoil()
+    data.helix:setColor( Color( 255, 125, 0 ) )
+    data.helix:setCoilCount( 24 )
+    data.helix:setDetail( 1 / 2 )
 end
 
 function mode:onThink( controller )
-    local e1 = GetEntity( controller, "Entity1", "netwire_Entity1" )
-    local e2 = GetEntity( controller, "Entity2", "netwire_Entity2" )
-
+    local e1, e2 = GetEntities( controller )
     if not e1 or not e2 then
         self:setnodraw( controller, true )
         return
     end
 
-    self:setnodraw( controller, false )
     local data = self:getData( controller )
+    data.helix:think( e1:GetPos(), e2:GetPos(), e1:GetPos() )
+
+    self:setnodraw( controller, false )
 end
 
 function mode:onDraw( controller, eyepos, eyedir, empty )
     local data = self:getData( controller )
+    data.helix:draw()
 end
 
 function ENT:Think()
