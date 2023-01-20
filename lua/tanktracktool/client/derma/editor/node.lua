@@ -60,6 +60,7 @@ function PANEL:PerformLayout( w, h )
     DTree_Node.PerformLayout( self )
 
     local inset = 16 --self.nonvar and 0 or 12
+    if self.nonvar then inset = 0 end
     local l = self:GetRoot():GetLabelWidth() - ( self.m_iNodeLevel or 0 ) * inset
 
     self.Label:SetSize( l, self:GetLineHeight() )

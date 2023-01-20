@@ -55,13 +55,14 @@ if CLIENT then
 end
 
 do
-    local flags = { edit = 2, data = 4, link = 8 }
+    local flags = { edit = 2, data = 4, link = 8, ents = 16 }
     local bits = 0
     local note = 0
 
     tanktracktool.loud_edit = flags.edit
     tanktracktool.loud_data = flags.data
     tanktracktool.loud_link = flags.link
+    tanktracktool.loud_ents = flags.ents
 
     local c0 = Color( 255, 255, 0 )
     local c1 = Color( 255, 255, 255 )

@@ -644,7 +644,7 @@ do
                     xmove = arm.barsize * values.suspensionTConnRad * 0.25 + 0.125
                 end
             else
-                arm.csent = controller.tanktracktool_modeData.csents["bogie"]
+                arm.csent = controller.tanktracktool_modeData_csents["bogie"]
                 arm:setmodel( "models/tanktracktool/bogie1.mdl" )
 
                 arm.barlengthbeam = math.max( wheel.radius, arm.barlengthbeam )

@@ -9,12 +9,13 @@ local math, util, string, table, render =
 local next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector =
       next, pairs, FrameTime, Entity, IsValid, EyePos, EyeVector, Vector, Angle, Matrix, WorldToLocal, LocalToWorld, Lerp, LerpVector
 
-tanktracktool.render = tanktracktool.render or { draws = {} }
+tanktracktool.render = tanktracktool.render or { list = {}, edicts = 0, draws = {} }
 
 if not IsValid( tanktracktool.render.empty ) then
     tanktracktool.render.empty = ClientsideModel( "models/props_c17/oildrum001_explosive.mdl" )
     tanktracktool.render.empty:SetNoDraw( true )
 end
+
 
 --[[
     core
@@ -39,37 +40,25 @@ hook.Add( "PostDrawTranslucentRenderables", "tanktracktoolRenderDraw", function(
     end
 end )
 
-local function createCSENTS( addTo, addFrom, pos )
-    for k, v in pairs( addFrom ) do
-        addTo[k] = ents.CreateClientside( "base_anim" )
-        addTo[k].RenderGroup = RENDERGROUP_OPAQUE
-        addTo[k]:SetPos( pos )
-        addTo[k]:SetRenderMode( RENDERMODE_TRANSCOLOR )
-        addTo[k]:SetLOD( 0 )
-        addTo[k]:SetNoDraw( true )
-        addTo[k]:DrawShadow( false )
-    end
-end
-
-local function removeCSENTS( removeTo, removeFrom )
-    if not removeTo then return end
-    for k, v in pairs( removeTo ) do
-        if not removeFrom or not removeFrom[k] then
-            v:Remove()
-        end
-    end
-end
-
 local function callOnRemove( controller )
     local self = controller
-    local csents = controller.tanktracktool_modeData and  controller.tanktracktool_modeData.csents
+    local csents = controller.tanktracktool_modeData_csents
+    local loud = tanktracktool.loud( tanktracktool.loud_ents )
 
     timer.Simple( 0, function()
         if self and IsValid( self ) then return end
+        tanktracktool.render.list[self] = nil
         draws[self] = nil
-        removeCSENTS( csents )
+        for k, v in pairs( csents ) do
+            if loud then
+                tanktracktool.note( string.format( "removing csent\nkey: %s\nent: %s\n", tostring( k ), tostring( self) ) )
+            end
+            v:Remove()
+            tanktracktool.render.edicts = tanktracktool.render.edicts - 1
+        end
     end )
 end
+
 
 --[[
     PARTS
@@ -228,15 +217,36 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
     end
 
     function meta:init( controller )
+        tanktracktool.render.list[controller] = self
         draws[controller] = nil
+
+        if not controller.tanktracktool_modeData_csents then controller.tanktracktool_modeData_csents = {} end
+        local loud = tanktracktool.loud( tanktracktool.loud_ents )
+
+        for k, v in pairs( self.csents ) do
+            if not IsValid( controller.tanktracktool_modeData_csents[k] ) then
+                local e = ents.CreateClientside( "base_anim" )
+                controller.tanktracktool_modeData_csents[k] = e
+
+                e.RenderGroup = RENDERGROUP_OPAQUE
+                e:SetRenderMode( RENDERMODE_TRANSCOLOR )
+                e:SetLOD( 0 )
+                e:DrawShadow( false )
+                e:SetNoDraw( true )
+                e:SetPos( controller:GetPos() )
+
+                if loud then
+                    tanktracktool.note( string.format( "creating csent\nkey: %s\nent: %s\n", tostring( k ), tostring( controller ) ) )
+                end
+
+                tanktracktool.render.edicts = tanktracktool.render.edicts + 1
+            end
+        end
 
         controller.tanktracktool_modeData_nodraw  = nil
         controller.tanktracktool_modeData_audible = true -- can think
         controller.tanktracktool_modeData_visible = nil  -- can draw
-        controller.tanktracktool_modeData = { csents = {}, parts = {}, data = {} }
-
-        removeCSENTS( controller.tanktracktool_modeData.csents, self.csents )
-        createCSENTS( controller.tanktracktool_modeData.csents, self.csents, controller:GetPos() )
+        controller.tanktracktool_modeData = { parts = {}, data = {} }
 
         controller:CallOnRemove( "tanktracktoolRender", callOnRemove )
 
@@ -264,7 +274,7 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
     end
 
     function meta:getCSents( controller )
-        return controller.tanktracktool_modeData.csents
+        return controller.tanktracktool_modeData_csents
     end
 
     function meta:getData( controller )
@@ -284,7 +294,7 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
 
         local part = {
             type = part,
-            csent = controller.tanktracktool_modeData.csents[csentName],
+            csent = controller.tanktracktool_modeData_csents[csentName],
             model = "models/hunter/blocks/cube025x025x025.mdl",
 
             render_l = true,
@@ -402,10 +412,10 @@ function tanktracktool.render.createCoil()
     local self = {}
 
     function self:setDetail( n )
-        detail = n
+        detail = math.Clamp( n, 1 / 16, 1 )
     end
     function self:setCoilCount( n )
-        coilCount = n * math.pi * 2
+        coilCount = math.Clamp( n, 1, 64 ) * math.pi * 2
     end
     function self:setRadius( n )
         radius = n
@@ -421,11 +431,14 @@ function tanktracktool.render.createCoil()
     end
 
     local noAngle = Angle()
+    local arc = math.pi * 1.75
 
-    function self:think( p0, p1, origin, offset )
+    function self:think( p0, p1, d0, d1 )
         local dir = p1 - p0
-        if offset then
-            p1 = p1 + dir:GetNormalized() * offset
+
+        if d0 or d1 then
+            if d0 then p0 = p0 + dir:GetNormalized() * d0 end
+            if d1 then p1 = p1 + dir:GetNormalized() * d1 end
             dir = p1 - p0
         end
 
@@ -438,9 +451,16 @@ function tanktracktool.render.createCoil()
         local r = radius
 
         points = {}
+
         for i = 0, t, detail do
-            points[#points + 1] = LocalToWorld( Vector( p * i, r * math.sin( i ), r * math.cos( i ) ), noAngle, origin, ang )
+            points[#points + 1] = LocalToWorld( Vector( p * i, r * math.sin( i ), r * math.cos( i ) ), noAngle, p0, ang )
         end
+
+        -- local a = p * t
+        -- for i = 0, arc, detail do
+        --     local rs = r * ( 1 - i / ( arc * 3 ) )
+        --     points[#points + 1] = LocalToWorld( Vector( a, rs * math.sin( i ), rs * math.cos( i ) ), noAngle, p0, ang )
+        -- end
 
         pcount = #points
     end
