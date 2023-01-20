@@ -337,6 +337,7 @@ do
     AddInformation( "wait_look", "materials/icon16/eye.png", "Look at a controller to begin", 0, 0 )
     AddInformation( "wait_copy", "materials/gui/lmb.png", "Copy values from this controller", 1, 0 )
     AddInformation( "wait_link", "materials/gui/rmb.png", "Start linking entities to this controller", 1, 0 )
+    AddInformation( "wait_spawn", "materials/gui/lmb.png", "Spawn a new controller", 0, 0 )
 
     multitool.modes.wait = {}
 
@@ -408,6 +409,11 @@ do
             if multitool:isLinkable( self.LookAt ) and key == 1 then
                 multitool:setMode( gmod_tool, ply, "link", self.LookAt )
                 return
+            end
+        else
+            if key == 0 and tobool( ply:GetInfo( "tanktracktool_spawn_onclick" ) ) then
+                local val = ply:GetInfo( "tanktracktool_spawn_entity" )
+                RunConsoleCommand( "gm_spawnsent", tostring( val ) )
             end
         end
     end
@@ -946,11 +952,15 @@ end
     panel
 ]]
 TOOL.ClientConVar = {
+    ["spawn_onclick"] = 0,
+    ["spawn_entity"] = "sent_tanktracks_legacy",
     ["spawn_model"] = "models/hunter/plates/plate.mdl",
 }
 
 local function ResetConvars()
     local l = {
+        "tanktracktool_spawn_onclick",
+        "tanktracktool_spawn_entity",
         "tanktracktool_spawn_model",
         "tanktracktool_autotracks_disable",
         "tanktracktool_autotracks_detail_max",
@@ -1015,21 +1025,24 @@ local function BuildPanel_EntitySettings( self )
     --
     local txt = header( pnl, "Spawn Menu" )
 
+    local cbox = pnl:CheckBox( "Left Click Spawn", "tanktracktool_spawn_onclick" )
+    cbox.OnChange = function( _, value )
+        cbox.Label:SetTextColor( value and Color( 255, 0, 0 ) or nil )
+    end
+
     local mdl = pnl:TextEntry( "Entity model:", "tanktracktool_spawn_model" )
 
     local combo = vgui.Create( "DComboBox", pnl )
     pnl:AddItem( combo )
 
-    combo:SetText( "Spawn entity..." )
+    combo:SetConVar( "tanktracktool_spawn_entity" )
     combo:AddChoice( "sent_tanktracks_auto", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_tanktracks_legacy", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_point_beam", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_suspension_coil", nil, nil, "icon16/bullet_blue.png" )
 
     combo.OnSelect = function( _, id, val, func )
-        combo:SetText( "Spawn entity..." )
-        RunConsoleCommand( "gm_spawnsent", val )
-        surface.PlaySound( "ui/buttonclickrelease.wav" )
+        RunConsoleCommand( "tanktracktool_spawn_entity", tostring( val ) )
     end
 
     --

@@ -98,6 +98,11 @@ local function setwposangl( self, pos, ang ) self.le_posworld, self.le_angworld 
 
 local function setwposangr( self, pos, ang ) self.ri_posworld, self.ri_angworld = pos, ang end
 
+local function setparent( self, lpart, rpart )
+    if lpart then self:setwposangl( LocalToWorld( self.le_poslocal, self.le_anglocal, lpart.le_posworld, lpart.le_angworld ) ) end
+    if rpart then self:setwposangr( LocalToWorld( self.ri_poslocal, self.ri_anglocal, rpart.ri_posworld, rpart.ri_angworld ) ) end
+end
+
 local function setscale( self, scale )
     self.scale_v = Vector( scale )
     self.scale_m = Matrix()
@@ -307,6 +312,7 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
             setlposangr = setlposangr,
             setwposangl = setwposangl,
             setwposangr = setwposangr,
+            setparent = setparent,
             setbodygroup = setbodygroup,
             setmodel = setmodel,
             setscale = setscale,
@@ -384,7 +390,7 @@ end
     coil part
 ]]
 function tanktracktool.render.createCoil()
-    local wireMaterial = Material( "tanktracktool/suspension/cable_white" )
+    local wireMaterial = Material( "tanktracktool/cable_white" )
     local wireColor = Color( 255, 255, 255, 255 )
     local wireRadius = 1
     local radius = 8
@@ -416,8 +422,13 @@ function tanktracktool.render.createCoil()
 
     local noAngle = Angle()
 
-    function self:think( p0, p1, origin )
+    function self:think( p0, p1, origin, offset )
         local dir = p1 - p0
+        if offset then
+            p1 = p1 + dir:GetNormalized() * offset
+            dir = p1 - p0
+        end
+
         local len = dir:Length()
         local ang = dir:Angle()
 
