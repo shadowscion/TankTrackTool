@@ -94,7 +94,12 @@ function PANEL:SetupMenu( comboBox, editData )
         bSkin = self:GetEditorSkin().colorHeader
     end
 
-    for id, thing in SortedPairs( editData.values or {} ) do
+    local sorter = editData.sort or SortedPairs
+    if editData.sort then
+        comboBox:SetSortItems( false )
+    end
+
+    for id, thing in sorter( editData.values or {} ) do
         if hasIcons then
             if pattern then icon = string.format( hasIcons, id ) else icon = hasIcons[ id ] end
         end

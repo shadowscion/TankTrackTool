@@ -69,60 +69,62 @@ end
 local netvar = tanktracktool.netvar.new()
 
 local default = {
-    cylinderLength = 12,
-    attachmentOffset = 0.5,
-
-    colUpper = "255 125 0 255",
-    colCylinder = "255 255 255 255",
-    colAttach = "255 125 0 255",
+    cylinderLen = 12,
+    retainerPos = 0.75,
+    colTop = "175 175 175 255",
+    colCylinder = "25 25 25 255",
+    colRetainer = "175 175 175 255",
     colPiston = "255 255 255 255",
-    colLower = "45 45 45 255",
-
-    matUpper = "models/shiny",
+    colBottom = "25 25 25 255",
+    matTop = "models/shiny",
     matCylinder = "models/shiny",
-    matAttach = "models/shiny",
-    matPiston = "phoenix_storms/gear",
-    matLower = "models/shiny",
-
+    matRetainer = "models/shiny",
+    matPiston = "phoenix_storms/fender_chrome",
+    matBottom = "models/shiny",
+    coilType = "spring",
+    coilColor = "175 175 175 255",
     coilCount = 12,
-    coilColor = "0 0 0 255",
-    coilRadius = 1 / 6,
+    coilRadius = 1 / 2,
 }
 
 function ENT:netvar_setup()
     return netvar, default
 end
 
-netvar:category( "damper" )
-netvar:var( "damperEnable", "Bool", { def = 1, title = "enabled" } )
-netvar:var( "cylinderLength", "Float", { def = 24, min = 0, max = 1000, title = "cylinder length" } )
-netvar:var( "attachmentOffset", "Float", { def = 0.5, min = 0, max = 1, "attachment offset" } )
+netvar:category( "setup" )
+netvar:var( "modelScale", "Float", { def = 1, min = 0, max = 50 } )
+
+netvar:category( "coil model" )
+netvar:var( "coilType", "Combo", { def = 1, values = { spring = 1, cover = 2, none = 3 }, sort = SortedPairsByValue, title = "type" } )
+netvar:var( "coilCol", "Color", { def = "", title = "color" } )
+netvar:var( "coilMat", "String", { def = "", title = "material" } )
+netvar:var( "coilCount", "Int", { def = 12 , min = 0, max = 50, title = "turn count" } )
+netvar:var( "coilRadius", "Float", { def = 1 / 6, min = 0, max = 50, title = "wire radius" } )
+
+netvar:category( "shock model" )
+netvar:var( "shockEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "cylinderLen", "Float", { def = 24, min = 0, max = 1000, title = "cylinder length" } )
+netvar:var( "retainerPos", "Float", { def = 0.5, min = 0, max = 1, title = "coil attachment offset" } )
 
 netvar:subcategory( "upper" )
-netvar:var( "colUpper", "Color", { def = "", title = "color" } )
-netvar:var( "matUpper", "String", { def = "", title = "material" } )
+netvar:var( "colTop", "Color", { def = "", title = "color" } )
+netvar:var( "matTop", "String", { def = "", title = "material" } )
+
+netvar:subcategory( "lower" )
+netvar:var( "colBottom", "Color", { def = "", title = "color" } )
+netvar:var( "matBottom", "String", { def = "", title = "material" } )
+
+netvar:subcategory( "coil attachment" )
+netvar:var( "colRetainer", "Color", { def = "", title = "color" } )
+netvar:var( "matRetainer", "String", { def = "", title = "material" } )
 
 netvar:subcategory( "cylinder" )
 netvar:var( "colCylinder", "Color", { def = "", title = "color" } )
 netvar:var( "matCylinder", "String", { def = "", title = "material" } )
 
-netvar:subcategory( "attachment point" )
-netvar:var( "colAttach", "Color", { def = "", title = "color" } )
-netvar:var( "matAttach", "String", { def = "", title = "material" } )
-
 netvar:subcategory( "piston rod" )
 netvar:var( "colPiston", "Color", { def = "", title = "color" } )
 netvar:var( "matPiston", "String", { def = "", title = "material" } )
-
-netvar:subcategory( "lower" )
-netvar:var( "colLower", "Color", { def = "", title = "color" } )
-netvar:var( "matLower", "String", { def = "", title = "material" } )
-
-netvar:category( "coil" )
-netvar:var( "coilEnable", "Bool", { def = 1, title = "enabled" } )
-netvar:var( "coilCount", "Int", { def = 12 , min = 0, max = 50, title = "turn count" } )
-netvar:var( "coilColor", "Color", { def = "", title = "color" } )
-netvar:var( "coilRadius", "Float", { def = 1 / 6, min = 0, max = 250, title = "wire radius" } )
 
 
 --[[
@@ -142,6 +144,35 @@ local pi = math.pi
 --[[
     editor callbacks
 ]]
+do
+    netvar:get( "coilType" ).data.hook = function( inner, val )
+        local editor = inner.m_Editor
+        editor.Variables.coilCol:SetEnabled( val == "spring" or val == "cover" )
+        editor.Variables.coilMat:SetEnabled( val == "cover" )
+        editor.Variables.coilCount:SetEnabled( val == "spring" )
+        editor.Variables.coilRadius:SetEnabled( val == "spring" )
+    end
+
+    local keys = { "cylinderLen", "retainerPos" }
+    local subs = { "upper", "lower", "coil attachment", "cylinder", "piston rod" }
+    netvar:get( "shockEnable" ).data.hook = function( inner, val )
+        local editor = inner.m_Editor
+        local enabled = tobool( val )
+
+        local cat = editor.Categories["shock model"].Categories
+        for k, v in pairs( subs ) do
+            if cat[v] then
+                cat[v]:SetExpanded( enabled, not enabled )
+                cat[v]:SetEnabled( enabled )
+            end
+        end
+        for k, v in pairs( keys ) do
+            if editor.Variables[v] then
+                editor.Variables[v]:SetEnabled( enabled )
+            end
+        end
+    end
+end
 
 
 --[[
@@ -190,7 +221,7 @@ end
 --[[
 ]]
 local mode = tanktracktool.render.mode()
-mode:addCSent( "dBar", "dUpper", "dCylinder", "dRetainer", "dLower1", "dLower2" )
+mode:addCSent( "shock_piston_tip", "shock_piston_rod", "shock_top", "shock_cylinder", "shock_retainer", "shock_bottom" )
 
 function mode:onInit( controller )
     self:override( controller, true )
@@ -198,77 +229,92 @@ function mode:onInit( controller )
     local values = controller.netvar.values
     local data = self:getData( controller )
 
-    local size = 1
-    local barSize = 0.5 * size
-    local cylinderLength = ( values.cylinderLength - 2.21 ) * size
-    local retainerPos = cylinderLength * values.attachmentOffset + 2.21
+    local factor = values.modelScale
 
-    local dUpper = self:addPart( controller, "dUpper" )
-    dUpper:setnodraw( false, true )
-    dUpper:setmodel( "models/tanktracktool/suspension/dampers/style1_upper.mdl" )
-    dUpper:setscale( Vector( size, size, size ) )
-    dUpper.scale_m:Rotate( Angle( -90, 0, 0 ) )
-    dUpper:setmaterial( values.matUpper )
-    dUpper:setcolor( values.colUpper )
+    local shock = {}
+    data.shock = shock
 
-    local dCylinder = self:addPart( controller, "dCylinder" )
-    dCylinder:setnodraw( false, true )
-    dCylinder:setmodel( "models/tanktracktool/suspension/dampers/style1_cylinder.mdl" )
-    dCylinder:setscale( Vector( cylinderLength / 6, size, size ) )
-    dCylinder.scale_m:Rotate( Angle( -90, 0, 0 ) )
-    dCylinder:setlposl( Vector( 2.21 * size, 0, 0 ) )
-    dCylinder:setmaterial( values.matCylinder )
-    dCylinder:setcolor( values.colCylinder )
+    -- any magic numbers below are from
+    -- the model dimensions in blender
 
-    local dRetainer = self:addPart( controller, "dRetainer" )
-    dRetainer:setnodraw( false, true )
-    dRetainer:setmodel( "models/tanktracktool/suspension/dampers/style1_retainer.mdl" )
-    dRetainer:setscale( Vector( size, size, size ) )
-    dRetainer.scale_m:Rotate( Angle( -90, 0, 0 ) )
-    dRetainer:setlposl( Vector( retainerPos, 0, 0 ) )
-    dRetainer:setmaterial( values.matAttach )
-    dRetainer:setcolor( values.colAttach )
+    shock.scalar = factor
+    shock.cylinderLen = values.cylinderLen
+    shock.retainerPos = ( shock.cylinderLen - ( 0.312768 * factor + 0.175 * ( shock.cylinderLen / 12 ) ) ) * values.retainerPos
 
-    local dLower1 = self:addPart( controller, "dLower1" )
-    dLower1:setnodraw( false, true )
-    dLower1:setmodel( "models/tanktracktool/suspension/dampers/style1_lower1.mdl" )
-    dLower1:setscale( Vector( size, size, size ) )
-    dLower1.scale_m:Rotate( Angle( -90, 0, 0 ) )
-    dLower1:setmaterial( values.matLower )
-    dLower1:setcolor( values.colLower )
+    shock.piston_tip1 = self:addPart( controller, "shock_piston_tip" )
+    shock.piston_tip1:setnodraw( false, true )
+    shock.piston_tip1:setmodel( "models/tanktracktool/suspension/shock_piston_tip.mdl" )
+    shock.piston_tip1:setmaterial( values.matPiston )
+    shock.piston_tip1:setcolor( values.colPiston )
+    shock.piston_tip1:setscale( Vector( factor, factor, factor ) )
 
-    local dLower2 = self:addPart( controller, "dLower2" )
-    dLower2:setnodraw( false, true )
-    dLower2:setmodel( "models/tanktracktool/suspension/dampers/style1_lower2.mdl" )
-    dLower2:setscale( Vector( size, size, size ) )
-    dLower2.scale_m:Rotate( Angle( -90, 0, 0 ) )
-    dLower2:setmaterial( values.matPiston )
-    dLower2:setcolor( values.colPiston )
+    shock.piston_tip2 = self:addPart( controller, "shock_piston_tip" )
+    shock.piston_tip2:setnodraw( false, true )
+    shock.piston_tip2:setmodel( "models/tanktracktool/suspension/shock_piston_tip.mdl" )
+    shock.piston_tip2:setmaterial( values.matPiston )
+    shock.piston_tip2:setcolor( values.colPiston )
+    shock.piston_tip2:setscale( Vector( factor, factor, factor ) )
+    shock.piston_tip2.le_anglocal.p = 180
 
-    local dBar = self:addPart( controller, "dBar" )
-    dBar:setnodraw( false, true )
-    dBar:setmodel( "models/tanktracktool/suspension/dampers/style1_bar.mdl" )
-    dBar.scale_v = Vector( 1, barSize / 2, barSize / 2 )
-    dBar.cylinderLength = cylinderLength + 2.21 - 1
-    dBar:setlposl( Vector( 2.21 + cylinderLength - 1, 0, 0 ) )
-    dBar:setmaterial( values.matPiston )
-    dBar:setcolor( values.colPiston )
+    if values.coilType == "cover" then
+        shock.piston_cover = self:addPart( controller, "shock_piston_rod" )
+        shock.piston_cover:setnodraw( false, true )
+        shock.piston_cover:setmodel( "models/tanktracktool/suspension/shock_cover.mdl" )
+        shock.piston_cover:setmaterial( values.coilMat )
+        shock.piston_cover:setcolor( values.coilCol )
+        shock.piston_cover:setscale( Vector( factor, factor, factor ) )
+        shock.piston_cover.le_poslocal.x = 0 * factor
+    else
+        shock.piston_rod = self:addPart( controller, "shock_piston_rod" )
+        shock.piston_rod:setnodraw( false, true )
+        shock.piston_rod:setmodel( "models/tanktracktool/suspension/shock_piston_rod.mdl" )
+        shock.piston_rod:setmaterial( values.matPiston )
+        shock.piston_rod:setcolor( values.colPiston )
+        shock.piston_rod:setscale( Vector( factor, factor, factor ) )
+        shock.piston_rod.le_poslocal.x = 1.5 * factor
 
-    data.damper = {
-        dUpper = dUpper,
-        dCylinder = dCylinder,
-        dRetainer = dRetainer,
-        dLower1 = dLower1,
-        dLower2 = dLower2,
-        dBar = dBar,
-    }
+        if values.coilType == "spring" and values.coilRadius > 0 and values.coilCount > 0 then
+            data.helix = tanktracktool.render.createCoil()
+            data.helix:setColor( string.ToColor( values.coilCol ) )
+            data.helix:setCoilCount( values.coilCount )
+            data.helix:setDetail( 1 / 2 )
+            data.helix:setRadius( 2.1 * factor )
+            data.helix:setWireRadius( values.coilRadius * factor )
+        end
+    end
 
-    data.helix = tanktracktool.render.createCoil()
-    data.helix:setColor( string.ToColor( values.coilColor ) )
-    data.helix:setCoilCount( values.coilCount )
-    data.helix:setDetail( 1 / 4 )
-    data.helix:setRadius( size * 1.125 )
-    data.helix:setWireRadius( size * values.coilRadius )
+    shock.top = self:addPart( controller, "shock_top" )
+    shock.top:setnodraw( false, true )
+    shock.top:setmodel( "models/tanktracktool/suspension/shock_top2.mdl" )
+    shock.top:setmaterial( values.matTop )
+    shock.top:setcolor( values.colTop )
+    shock.top:setscale( Vector( factor, factor, factor ) )
+    shock.top.le_poslocal.x = 1.25 * factor
+
+    shock.cylinder = self:addPart( controller, "shock_cylinder" )
+    shock.cylinder:setnodraw( false, true )
+    shock.cylinder:setmodel( "models/tanktracktool/suspension/shock_cylinder.mdl" )
+    shock.cylinder:setmaterial( values.matCylinder )
+    shock.cylinder:setcolor( values.colCylinder )
+    shock.cylinder:setscale( Vector( shock.cylinderLen / 12, factor, factor ) )
+    shock.cylinder.le_poslocal.x = 3 * factor
+
+    shock.retainer = self:addPart( controller, "shock_retainer" )
+    shock.retainer:setnodraw( false, true )
+    shock.retainer:setmodel( "models/tanktracktool/suspension/shock_retainer.mdl" )
+    shock.retainer:setmaterial( values.matRetainer )
+    shock.retainer:setcolor( values.colRetainer )
+    shock.retainer:setscale( Vector( factor, factor, factor ) )
+    shock.retainer.le_poslocal.x = shock.retainerPos
+
+    shock.bottom = self:addPart( controller, "shock_bottom" )
+    shock.bottom:setnodraw( false, true )
+    shock.bottom:setmodel( "models/tanktracktool/suspension/shock_bottom.mdl" )
+    shock.bottom:setmaterial( values.matBottom )
+    shock.bottom:setcolor( values.colBottom )
+    shock.bottom:setscale( Vector( factor, factor, factor ) )
+    shock.bottom.le_poslocal.x = 3 * factor
+    shock.bottom.le_anglocal.p = 180
 end
 
 function mode:onThink( controller )
@@ -283,38 +329,47 @@ function mode:onThink( controller )
     local data = self:getData( controller )
     local parts = self:getParts( controller )
 
-    local damper = data.damper
+    local pos1 = e1:GetPos() + Vector( 1, 0, 0 )
+    local pos2 = e2:GetPos()
+    local dir = pos2 - pos1
+    local len = dir:Length()
+    local ang = dir:Angle()
 
-    do
-        local pos1 = e1:GetPos()
-        local pos2 = e2:GetPos()
-        local dir = pos2 - pos1
-        local len = dir:Length()
-        local ang = dir:Angle()
+    local shock = data.shock
+    local scale = shock.scalar
 
-        damper.dUpper:setwposangl( pos1, ang )
-        damper.dCylinder:setparent( damper.dUpper )
-        damper.dRetainer:setparent( damper.dUpper )
-        damper.dBar:setparent( damper.dUpper )
+    shock.piston_tip1:setwposangl( pos1, ang )
+    shock.piston_tip2.le_poslocal.x = len
+    shock.piston_tip2:setparent( shock.piston_tip1 )
 
-        damper.dBar.scale_v.x = ( len - damper.dBar.cylinderLength ) / 6
+    shock.top:setparent( shock.piston_tip1 )
+    shock.bottom:setparent( shock.piston_tip2 )
+    shock.cylinder:setparent( shock.top )
+    shock.retainer:setparent( shock.cylinder )
 
-        local scale = Matrix()
-        scale:SetScale( damper.dBar.scale_v )
-        scale:Rotate( Angle( -90, 0, 0 ) )
-        damper.dBar.scale_m = scale
-
-        damper.dLower1:setwposangl( pos2, ang )
-        damper.dLower2:setwposangl( pos2, ang )
-
-        data.helix:think( damper.dRetainer.le_posworld, pos2, nil, -0.3 )
+    if shock.piston_cover then
+        shock.piston_cover:setparent( shock.retainer )
+        local len = ( shock.retainer.le_posworld - shock.bottom.le_posworld ):Length()
+        shock.piston_cover.scale_v.x = len / 12
+        shock.piston_cover.scale_m:SetScale( shock.piston_cover.scale_v )
+    else
+        if shock.piston_rod then
+            shock.piston_rod.scale_v.x = ( len - 3 * scale ) / 24
+            shock.piston_rod.scale_m:SetScale( shock.piston_rod.scale_v )
+            shock.piston_rod:setparent( shock.piston_tip1 )
+        end
+        if data.helix then
+            data.helix:think( shock.retainer.le_posworld, shock.bottom.le_posworld )
+        end
     end
 end
 
-
 function mode:onDraw( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
     local data = self:getData( controller )
-    data.helix:draw()
+
+    if data.helix then
+        data.helix:draw()
+    end
 
     self:renderParts( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
 

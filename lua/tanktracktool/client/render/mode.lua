@@ -180,8 +180,12 @@ local function renderme( self, empty )
         end
 
         local doscale = not self.setupscale
-        if doscale and self.scale_m then
-            csent:EnableMatrix( "RenderMultiply", self.scale_m )
+        if doscale then
+            if self.scale_m then
+                csent:EnableMatrix( "RenderMultiply", self.scale_m )
+            else
+                csent:DisableMatrix( "RenderMultiply" )
+            end
         end
 
         if self.render_l then
