@@ -566,6 +566,7 @@ if SERVER then
     function netvar.copy( ent1, ent2, ply )
         local check = IsValid( ply ) and netvar.canEdit or netvar.isValid
         if not check( ent1, ply ) or not check( ent2, ply ) then return end
+        if ent1:GetClass() ~= ent2:GetClass() then return end
 
         local vars = ent1.netvar.variables
         local vals = ent1.netvar.values

@@ -160,6 +160,10 @@ function ENT:netvar_install( restore )
     tanktracktool.netvar.install( self, install, default, restore )
 end
 
+function ENT:netvar_copy( ply, ent )
+    tanktracktool.netvar.copy( self, ent, ply )
+end
+
 function ENT:netvar_set( name, index, newval, forceUpdate )
     return tanktracktool.netvar.setVar( self, name, index, newval, forceUpdate )
 end

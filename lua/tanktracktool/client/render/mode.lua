@@ -126,7 +126,7 @@ local function setmaterial( self, material )
     end
     if istable( material ) then
         if material.base then
-            self.material = tanktracktool.util.getMaterial( material )
+            self.material = tanktracktool.util.getMaterial( material.base )
             return
         end
         local m = {}
