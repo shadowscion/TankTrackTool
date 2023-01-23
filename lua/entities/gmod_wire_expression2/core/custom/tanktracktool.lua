@@ -63,7 +63,8 @@ local validClasses = {
     sent_tanktracks_auto = true,
     sent_tanktracks_legacy = true,
     sent_point_beam = true,
-    sent_suspension_coil = true,
+    sent_susp_shock_coil = true,
+    sent_susp_macpherson_strut = true,
 }
 
 local isOwner = E2Lib.isOwner
@@ -186,7 +187,7 @@ quicklink.sent_point_beam = {
     end
 }
 
-quicklink.sent_suspension_coil = {
+quicklink.sent_susp_shock_coil = {
     get = function()
         return { "Entity1 (entity)", "Entity2 (entity)" }
     end,
@@ -200,6 +201,27 @@ quicklink.sent_suspension_coil = {
             return
         end
         return this:netvar_setLinks( { Entity1 = E2Table.s.Entity1, Entity2 = E2Table.s.Entity2 }, self.player )
+    end
+}
+
+quicklink.sent_susp_macpherson_strut = {
+    get = function()
+        return { "Chassis (entity)", "LeftWheel (entity)", "RightWheel (entity)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Chassis or not isentity( E2Table.s.Chassis ) then
+            self:throw( "Links table must contain an entity with key 'Chassis'!", nil )
+            return
+        end
+        if not E2Table.s.LeftWheel or not isentity( E2Table.s.LeftWheel ) then
+            self:throw( "Links table must contain an entity with key 'LeftWheel'!", nil )
+            return
+        end
+        if not E2Table.s.RightWheel or not isentity( E2Table.s.RightWheel ) then
+            self:throw( "Links table must contain an entity with key 'RightWheel'!", nil )
+            return
+        end
+        return this:netvar_setLinks( { Chassis = E2Table.s.Chassis, LeftWheel = E2Table.s.LeftWheel, RightWheel = E2Table.s.RightWheel }, self.player )
     end
 }
 

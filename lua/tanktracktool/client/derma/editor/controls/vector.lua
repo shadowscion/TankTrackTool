@@ -88,6 +88,8 @@ function PANEL:Setup( editData )
             end
         end
     else
+        self:GetRow().nonvar = true
+
         x = self:GetRow():AddNode(angle and "p" or "x").Container:Add( "DNumSlider" )
         y = self:GetRow():AddNode("y").Container:Add( "DNumSlider" )
         z = self:GetRow():AddNode(angle and "r" or "z").Container:Add( "DNumSlider" )
