@@ -164,6 +164,8 @@ function PANEL:Setup( editData )
         DTree_Node.SetEnabled( self, b )
     end
 
+    if isstring( editData.help ) then self:SetToolTip( editData.help ) end
+
     self.Inner.m_Editor = self.m_Editor
 end
 

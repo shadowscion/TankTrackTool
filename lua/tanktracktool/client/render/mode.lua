@@ -271,6 +271,31 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
         self:onThink( controller, eyepos, eyedir )
     end
 
+    function meta:insertCSEnt( controller, ... )
+        for k, name in pairs( { ... } ) do
+            self.csents[name] = true
+        end
+        for k, v in pairs( self.csents ) do
+            if not IsValid( controller.tanktracktool_modeData_csents[k] ) then
+                local e = ents.CreateClientside( "base_anim" )
+                controller.tanktracktool_modeData_csents[k] = e
+
+                e.RenderGroup = RENDERGROUP_OPAQUE
+                e:SetRenderMode( RENDERMODE_TRANSCOLOR )
+                e:SetLOD( 0 )
+                e:DrawShadow( false )
+                e:SetNoDraw( true )
+                e:SetPos( controller:GetPos() )
+
+                if loud then
+                    tanktracktool.note( string.format( "creating csent\nkey: %s\nent: %s\n", tostring( k ), tostring( controller ) ) )
+                end
+
+                tanktracktool.render.edicts = tanktracktool.render.edicts + 1
+            end
+        end
+    end
+
     function meta:addCSent( ... )
         for k, name in pairs( { ... } ) do
             self.csents[name] = true
@@ -394,7 +419,7 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
     -- for overriding
     function meta:onInit( controller ) end
     function meta:onThink( controller ) end
-    function meta:onDraw( controller, eyepos, eyedir, empty ) end
+    function meta:onDraw( controller, eyepos, eyedir, empty, flashlight ) end
 
     return meta
 end
@@ -431,6 +456,7 @@ function tanktracktool.render.createCoil()
         wireMaterial = Material( s )
     end
     function self:setColor( c )
+        if isstring( c ) then c = string.ToColor( c ) end
         wireColor = Color( c.r, c.g, c.b, c.a )
     end
 
@@ -483,6 +509,232 @@ function tanktracktool.render.createCoil()
         end
 
         render.EndBeam()
+    end
+
+    return self
+end
+
+
+--[[
+]]
+function tanktracktool.render.addshock( mode, controller )
+    local self = { info = {} }
+
+    mode:insertCSEnt( controller, "shock_tip", "shock_rod", "shock_bot", "shock_top", "shock_cylinder", "shock_retainer", "shock_cover" )
+
+    self.info.type = "coil_over"
+    self.info.scale = 1
+    self.info.shocklencyl = 24
+    self.info.shocklenret = 0.5
+    self.info.coilcount = 12
+    self.info.coilradius = 2.1
+    self.info.wireradius = 1 / 2
+    self.info.rodcolor = HSVToColor( 0, 1, 1 )
+    self.info.topcolor = HSVToColor( 30, 1, 1 )
+    self.info.botcolor = HSVToColor( 60, 1, 1 )
+    self.info.cylcolor = HSVToColor( 90, 1, 1 )
+    self.info.retcolor = HSVToColor( 120, 1, 1 )
+    self.info.wirecolor = HSVToColor( 150, 1, 1 )
+
+    self.info.rodmat = ""
+    self.info.topmat = ""
+    self.info.botmat = ""
+    self.info.cylmat = ""
+    self.info.retmat = ""
+    self.info.covermat = ""
+
+    function self:setnodraw( l, r )
+        for k, v in pairs( self.parts ) do v:setnodraw( l, r ) end
+    end
+
+    function self:init( l, r )
+        self.parts = ( l or r ) and {}
+        if not self.parts or self.info.scale == 0 then self.parts = nil return end
+
+        self.parts.tip1 = mode:addPart( controller, "shock_tip" )
+        self.parts.tip1:setmodel( "models/tanktracktool/suspension/shock_piston_tip1.mdl" )
+        self.parts.tip1:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
+        self.parts.tip1:setcolor( self.info.rodcolor )
+        self.parts.tip1:setmaterial( self.info.rodmat )
+
+        self.parts.tip2 = mode:addPart( controller, "shock_tip" )
+        self.parts.tip2:setmodel( "models/tanktracktool/suspension/shock_piston_tip1.mdl" )
+        self.parts.tip2.le_anglocal.p = 180
+        self.parts.tip2.ri_anglocal.p = 180
+        self.parts.tip2:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
+        self.parts.tip2:setcolor( self.info.rodcolor )
+        self.parts.tip2:setmaterial( self.info.rodmat )
+
+        if self.info.type == "covered" then
+            self.parts.cover = mode:addPart( controller, "shock_cover" )
+            self.parts.cover:setmodel( "models/tanktracktool/suspension/shock_cover1.mdl" )
+            self.parts.cover.scale_v = Vector( self.info.scale, self.info.scale, self.info.scale )
+            self.parts.cover.scale_l = Matrix()
+            self.parts.cover.scale_r = Matrix()
+            self.parts.cover.setupscale = function( part, csent, left, controller )
+                csent:EnableMatrix( "RenderMultiply", left and part.scale_l or part.scale_r )
+                csent:SetupBones()
+            end
+            self.parts.cover:setcolor( self.info.wirecolor )
+            self.parts.cover:setmaterial( self.info.covermat )
+        else
+            if self.info.type ~= "spring" then
+                self.parts.rod = mode:addPart( controller, "shock_rod" )
+                self.parts.rod:setmodel( "models/tanktracktool/suspension/shock_piston_rod.mdl" )
+                self.parts.rod.le_poslocal.x = 1.5 * self.info.scale
+                self.parts.rod.ri_poslocal.x = 1.5 * self.info.scale
+                self.parts.rod.scale_v = Vector( self.info.scale, self.info.scale, self.info.scale )
+                self.parts.rod.scale_l = Matrix()
+                self.parts.rod.scale_r = Matrix()
+                self.parts.rod.setupscale = function( part, csent, left, controller )
+                    csent:EnableMatrix( "RenderMultiply", left and part.scale_l or part.scale_r )
+                    csent:SetupBones()
+                end
+                self.parts.rod:setcolor( self.info.rodcolor )
+                self.parts.rod:setmaterial( self.info.rodmat )
+            end
+
+            if self.info.type == "coil_over" or self.info.type == "spring" then
+                if l then
+                    self.helix_l = tanktracktool.render.createCoil()
+                    self.helix_l:setCoilCount( self.info.coilcount )
+                    self.helix_l:setRadius( self.info.coilradius * self.info.scale )
+                    self.helix_l:setWireRadius( ( self.info.coilradius * self.info.wireradius ) * self.info.scale )
+                    self.helix_l:setColor( self.info.wirecolor )
+                    self.helix_l:setDetail( 1 / 2 )
+                end
+                if r then
+                    self.helix_r = tanktracktool.render.createCoil()
+                    self.helix_r:setCoilCount( self.info.coilcount )
+                    self.helix_r:setRadius( self.info.coilradius * self.info.scale )
+                    self.helix_r:setWireRadius( ( self.info.coilradius * self.info.wireradius ) * self.info.scale )
+                    self.helix_r:setColor( self.info.wirecolor )
+                    self.helix_r:setDetail( 1 / 2 )
+                end
+            end
+        end
+
+        self.parts.top = mode:addPart( controller, "shock_top" )
+        self.parts.top:setmodel( "models/tanktracktool/suspension/shock_top1.mdl" )
+        self.parts.top.le_poslocal.x = 1.25 * self.info.scale
+        self.parts.top.ri_poslocal.x = 1.25 * self.info.scale
+        self.parts.top:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
+        self.parts.top:setcolor( self.info.topcolor )
+        self.parts.top:setmaterial( self.info.topmat )
+
+        self.parts.cylinder = mode:addPart( controller, "shock_cylinder" )
+        self.parts.cylinder:setmodel( "models/tanktracktool/suspension/shock_cylinder1.mdl" )
+        self.parts.cylinder.le_poslocal.x = 3 * self.info.scale
+        self.parts.cylinder.ri_poslocal.x = 3 * self.info.scale
+        self.parts.cylinder:setscale( Vector( self.info.shocklencyl / 12, self.info.scale, self.info.scale ) )
+        self.parts.cylinder:setcolor( self.info.cylcolor )
+        self.parts.cylinder:setmaterial( self.info.cylmat )
+
+        if self.info.type ~= "none" then
+            self.parts.bot = mode:addPart( controller, "shock_bot" )
+            self.parts.bot:setmodel( "models/tanktracktool/suspension/shock_bottom1.mdl" )
+            self.parts.bot.le_anglocal.p = 180
+            self.parts.bot.ri_anglocal.p = 180
+            self.parts.bot.le_poslocal.x = 3 * self.info.scale
+            self.parts.bot.ri_poslocal.x = 3 * self.info.scale
+            self.parts.bot:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
+            self.parts.bot:setcolor( self.info.botcolor )
+            self.parts.bot:setmaterial( self.info.botmat )
+
+            self.parts.retainer = mode:addPart( controller, "shock_retainer" )
+            self.parts.retainer:setmodel( "models/tanktracktool/suspension/shock_retainer1.mdl" )
+            self.parts.retainer.le_poslocal.x = ( self.info.shocklencyl - ( 0.312768 * self.info.scale + 0.175 * ( self.info.shocklencyl / 12 ) ) ) * self.info.shocklenret
+            self.parts.retainer.ri_poslocal.x = ( self.info.shocklencyl - ( 0.312768 * self.info.scale + 0.175 * ( self.info.shocklencyl / 12 ) ) ) * self.info.shocklenret
+            self.parts.retainer:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
+            self.parts.retainer:setcolor( self.info.retcolor )
+            self.parts.retainer:setmaterial( self.info.retmat )
+        end
+
+        self:setnodraw( not l, not r )
+
+        if self.info.shocklencyl == 0 then
+            self.parts.cylinder:setnodraw( true, true )
+        end
+    end
+
+    function self:setcontrolpoints( lp1, lp2, rp1, rp2 )
+        local parts = self.parts
+        if not parts then return end
+
+        if lp1 and lp2 then
+            local dir = lp2 - lp1
+
+            -- lp2 = lp1 + dir:GetNormalized() * math.max( self.info.shocklencyl, dir:Length() )
+            -- dir = lp2 - lp1
+
+            local len = dir:Length()
+            local ang = dir:Angle()
+
+            parts.tip1:setwposangl( lp1, ang )
+
+            parts.tip2.le_poslocal.x = len
+            parts.tip2:setparent( parts.tip1, nil )
+
+            if parts.rod then
+                parts.rod.scale_v.x = ( len - 3 * self.info.scale ) / 24
+                parts.rod.scale_l:SetScale( parts.rod.scale_v )
+                parts.rod:setparent( parts.tip1, nil )
+            end
+
+            if parts.bot then parts.bot:setparent( parts.tip1, nil ) end
+            parts.top:setparent( parts.tip2, nil )
+            parts.cylinder:setparent( parts.top, nil )
+            if parts.retainer then parts.retainer:setparent( parts.cylinder, nil ) end
+
+            if parts.cover then
+                local len = ( parts.retainer.le_posworld - parts.bot.le_posworld ):Length()
+                parts.cover.scale_v.x = len / 12
+                parts.cover.scale_l:SetScale( parts.cover.scale_v )
+                parts.cover:setparent( parts.retainer, nil )
+            end
+
+            if self.helix_l then
+               self.helix_l:think( parts.retainer.le_posworld, parts.bot.le_posworld )
+            end
+        end
+
+        if rp1 and rp2 then
+            local dir = rp2 - rp1
+            local len = dir:Length()
+            local ang = dir:Angle()
+
+            parts.tip1:setwposangr( rp1, ang )
+
+            parts.tip2.ri_poslocal.x = len
+            parts.tip2:setparent( nil, parts.tip1 )
+
+            if parts.rod then
+                parts.rod.scale_v.x = ( len - 3 * self.info.scale ) / 24
+                parts.rod.scale_r:SetScale( parts.rod.scale_v )
+                parts.rod:setparent( nil, parts.tip1 )
+            end
+
+            if parts.bot then parts.bot:setparent( nil, parts.tip1 ) end
+            parts.top:setparent( nil, parts.tip2 )
+            parts.cylinder:setparent( nil, parts.top )
+            if parts.retainer then parts.retainer:setparent( nil, parts.cylinder ) end
+
+            if parts.cover then
+                local len = ( parts.retainer.ri_posworld - parts.bot.ri_posworld ):Length()
+                parts.cover.scale_v.x = len / 12
+                parts.cover.scale_r:SetScale( parts.cover.scale_v )
+                parts.cover:setparent( nil, parts.retainer )
+            end
+
+            if self.helix_r then
+               self.helix_r:think( parts.retainer.ri_posworld, parts.bot.ri_posworld )
+            end
+        end
+    end
+
+    function self:render()
+        if self.helix_l then self.helix_l:draw() end
+        if self.helix_r then self.helix_r:draw() end
     end
 
     return self

@@ -5,6 +5,10 @@ local function ColorToString( col )
     return math.floor( col.r ) .. " " .. math.floor( col.g ) .. " " .. math.floor( col.b ) .. " " .. math.floor( col.a )
 end
 
+local function Luminance( col )
+    return 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b
+end
+
 local grid = Material( "gui/alpha_grid.png", "nocull" )
 local gradient = Material( "vgui/gradient-l" )
 
@@ -17,7 +21,7 @@ local function Paint( self, w, h )
 
         local size = 192
         for i = 0, math.ceil( h / size ) do
-            surface.DrawTexturedRect( w / 2 - size / 2, i * size, size, size )
+            surface.DrawTexturedRect( 0, i * size, w, size )
         end
 
         surface.SetDrawColor( color )
@@ -28,6 +32,14 @@ local function Paint( self, w, h )
         surface.SetDrawColor( 0, 0, 0, 200 )
         surface.DrawOutlinedRect( 0, 0, w, h )
 
+        if IsValid( self.mixer ) then
+            if Luminance( color ) < 180 then
+                draw.SimpleTextOutlined( "Click to close!", "DermaDefault", w / 2, h / 2, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+            else
+                draw.SimpleTextOutlined( "Click to close!", "DermaDefault", w / 2, h / 2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_white)
+            end
+        end
+
         return true
     end
 
@@ -37,48 +49,67 @@ local function Paint( self, w, h )
     surface.SetDrawColor( 0, 0, 0, 200 )
     surface.DrawOutlinedRect( 0, 0, w, h )
 
+    if IsValid( self.mixer ) then
+        if Luminance( color ) < 180 then
+            draw.SimpleTextOutlined( "Click to close!", "DermaDefault", w / 2, h / 2, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+        else
+            draw.SimpleTextOutlined( "Click to close!", "DermaDefault", w / 2, h / 2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_white)
+        end
+    end
+
     return true
 end
 
 function PANEL:Setup( editData )
     self:Clear()
 
-    local editor = self:Add( "DColorButton" )
+    local editor = self:Add( "DButton" )
     editor:Dock( FILL )
     editor:DockMargin( 0, 0, 0, 0 )
     editor:SetText( "" )
-    editor:SetTooltip( nil )
 
     local inner = Color( 255, 255, 255, 255 )
     local mixer
 
     editor.Paint = Paint
     editor.DoClick = function()
+        if IsValid( mixer ) then
+            editor.mixer = nil
+            mixer:Remove()
+            mixer = nil
+            return
+        end
+
         if IsValid( self.m_Editor.ColorMixer ) then
             self.m_Editor.ColorMixer:Remove()
         end
 
-        local color = vgui.Create( "DColorCombo", self.m_Editor )
+        self.m_Editor.ColorMixer = vgui.Create( "DColorMixer", self.m_Editor )
+        mixer = self.m_Editor.ColorMixer
+        editor.mixer = mixer
 
-        color.Mixer:SetAlphaBar( true )
-        color.Mixer:SetPalette( false )
-        color.Mixer:SetWangs( true )
+        mixer:SetAlphaBar( true )
+        mixer:SetPalette( false )
+        mixer:SetWangs( true )
 
-        color:SetupCloseButton( function() color:Remove() end )
-        color.OnValueChanged = function( color, newcol )
+        mixer.ValueChanged = function( color, newcol )
             inner = newcol
             editor:SetColor( newcol )
             self:ValueChanged( ColorToString( newcol ), true )
         end
 
-        local x, y = self.m_Editor:GetChildPosition( self:GetRow() )
-        color:SetPos( x - color:GetWide() + self:GetRow():GetWide(), y + self:GetRow().Label:GetTall() )
+        mixer.Paint = function( _, w, h )
+            surface.SetDrawColor( inner )
+            surface.DrawRect( 0, 0, w, h )
+            return DColorMixer.Paint( _, w, h )
+        end
+
 
         local col = inner
-        color:SetColor( col )
+        mixer:SetColor( col )
 
-        self.m_Editor.ColorMixer = color
-        mixer = color
+        local x, y = self.m_Editor:GetChildPosition( self:GetRow() )
+        mixer:SetPos( x - mixer:GetWide() + self:GetRow():GetWide(), y + self:GetRow().Label:GetTall() )
     end
 
     editor.DoRightClick = function()
@@ -121,4 +152,3 @@ function PANEL:Setup( editData )
 end
 
 derma.DefineControl( "tanktracktoolEditor_Color", "", PANEL, "tanktracktoolEditor_Generic" )
-
