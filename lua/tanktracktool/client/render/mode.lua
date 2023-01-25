@@ -263,6 +263,9 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
     function meta:draw( controller )
         if controller.tanktracktool_modeData_nodraw or not controller.tanktracktool_modeData_visible then return end
         self:onDraw( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
+        if self.overlay and tanktracktool.render.overlay and controller.tanktracktool_modeData_overlay then
+            self:overlay( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
+        end
     end
 
     function meta:think( controller )

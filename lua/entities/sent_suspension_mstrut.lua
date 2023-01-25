@@ -45,15 +45,38 @@ function ENT:netvar_setup()
     return netvar
 end
 
-netvar:category( "Setup" )
+netvar:category( "Contraption Parameters" )
 
-netvar:var( "scale", "Float", { def = 1, min = 0, max = 50 } )
-netvar:var( "xwheel", "Float", { def = 0, min = 0, max = 1000, title = "wheel forward offset" } )
-netvar:var( "ywheel", "Float", { def = 0, min = -1, max = 1, title = "wheel width offset" } )
+netvar:subcategory( "chassis axis" )
+netvar:var( "matrixrx", "Bool", { def = 0, title = "rotate forward" } )
+netvar:var( "matrixix", "Bool", { def = 0, title = "invert forward" } )
+netvar:var( "matrixiz", "Bool", { def = 0, title = "invert up" } )
 
-netvar:category( "Swing Arm" )
-netvar:var( "zarm", "Float", { def = 0, min = -1000, max = 1000, title = "pivot height" } )
-netvar:var( "yarm", "Float", { def = 0, min = -1000, max = 1000, title = "pivot length" } )
+netvar:subcategory( nil )
+netvar:var( "wheelrad", "Float", { def = 0, min = 0, max = 1000, title = "wheel radius" } )
+netvar:var( "wheelfwd", "Float", { def = 0, min = -1000, max = 1000, title = "wheel position (x)" } )
+
+
+netvar:category( "Linkages" )
+netvar:var( "scale", "Float", { def = 1, min = 0, max = 50, title = "model scale" } )
+netvar:var( "spindleri", "Float", { def = 0, min = -1, max = 1, title = "spindle position (y)" } )
+netvar:var( "pivotri", "Float", { def = 0, min = -1000, max = 1000, title = "pivot position (y)" } )
+netvar:var( "pivotup", "Float", { def = 0, min = -1000, max = 1000, title = "pivot position (z)" } )
+
+
+
+netvar:subcategory( "Colors" )
+netvar:var( "spindlecolor", "Color", { def = "", title = "spindle" } )
+netvar:var( "ujointcolor", "Color", { def = "", title = "u-joint" } )
+netvar:var( "armcolor", "Color", { def = "", title = "control arm" } )
+
+netvar:subcategory( "Materials" )
+netvar:var( "spindlemat", "String", { def = "phoenix_storms/gear", title = "spindle" } )
+netvar:var( "ujointmat", "String", { def = "phoenix_storms/gear", title = "u-joint" } )
+netvar:var( "armmat", "String", { def = "phoenix_storms/gear", title = "control arm" } )
+
+
+
 
 netvar:category( "Shock Absorber" )
 
@@ -106,6 +129,10 @@ hooks.editor_open = function( self, editor )
     for k, cat in pairs( editor.Categories ) do
         cat:ExpandRecurse( true )
     end
+    self.tanktracktool_modeData_overlay = true
+end
+hooks.editor_close = function( self, editor )
+    self.tanktracktool_modeData_overlay = nil
 end
 
 hooks.netvar_set = function( self ) self.tanktracktool_reset = true end
@@ -163,12 +190,13 @@ function mode:onInit( controller )
     local values = controller.netvar.values
     local data = self:getData( controller )
 
-    data.scale = values.scale + 1
-    data.xwheel = values.xwheel
-    data.ywheel = values.ywheel
+    data.wheelrad = values.wheelrad
+    data.wheelfwd = values.wheelfwd
+    data.spindleri = values.spindleri
+    data.pivotri = values.pivotri
+    data.pivotup = values.pivotup
 
-    data.yarm = values.yarm
-    data.zarm = values.zarm
+    data.scale = values.scale + 1
 
     data.spindle = self:addPart( controller, "spindle" )
     data.spindle:setmodel( "models/tanktracktool/suspension/linkage_spindle1.mdl" )
@@ -205,6 +233,13 @@ function mode:onInit( controller )
         csent:SetupBones()
     end
 
+    data.spindle:setcolor( values.spindlecolor )
+    data.spindle:setmaterial( values.spindlemat )
+    data.ujoint:setcolor( values.ujointcolor )
+    data.ujoint:setmaterial( values.ujointmat )
+    data.arm:setcolor( values.armcolor )
+    data.arm:setmaterial( values.armmat )
+
     local shock = tanktracktool.render.addshock( self, controller )
     data.shock = shock
 
@@ -230,16 +265,40 @@ function mode:onInit( controller )
 
     data.shockoffset_l1 = Vector( -0.5, 0, 6 ) * data.scale
     data.shockoffset_r1 = Vector( -0.5, 0, 6 ) * data.scale
-    data.shockoffset_l2 = Vector( data.xwheel + values.shockoffset1.x, values.shockoffset1.y, values.shockoffset1.z )
-    data.shockoffset_r2 = Vector( data.xwheel + values.shockoffset1.x, -values.shockoffset1.y, values.shockoffset1.z )
-
+    data.shockoffset_l2 = Vector( data.wheelfwd + values.shockoffset1.x, values.shockoffset1.y, values.shockoffset1.z )
+    data.shockoffset_r2 = Vector( data.wheelfwd + values.shockoffset1.x, -values.shockoffset1.y, values.shockoffset1.z )
     data.shock:init( true, true )
 
-    for k, v in pairs( self:getParts( controller ) ) do
-        v:setcolor( HSVToColor( ( 360 / #self:getParts( controller ) ) * k, 1, 1 ) )
-        v:setmaterial( "" )
-    end
+    -- for k, v in pairs( self:getParts( controller ) ) do
+    --     v:setcolor( HSVToColor( ( 360 / #self:getParts( controller ) ) * k, 1, 1 ) )
+    --     v:setmaterial( "" )
+    -- end
 
+    do
+        local rotate
+        local m = Matrix()
+
+        if tobool( values.matrixrx ) then
+            local r = m:GetRight()
+            m:SetRight( -m:GetForward() )
+            m:SetForward( r )
+            rotate = true
+        end
+        if tobool( values.matrixix ) then
+            m:SetForward( m:GetForward() * -1 )
+            m:SetRight( m:GetRight() * -1 )
+            rotate = true
+        end
+        if tobool( values.matrixiz ) then
+            m:SetUp( m:GetUp() * -1 )
+            m:SetRight( m:GetRight() * -1 )
+            rotate = true
+        end
+
+        if rotate then
+            data.rotation = tanktracktool.util.toLocalAng( Vector(), Angle(), m:GetAngles() )
+        end
+    end
 end
 
 local _ang = Angle()
@@ -257,8 +316,7 @@ function mode:onThink( controller )
     local parts = self:getParts( controller )
 
     local m = e0:GetWorldTransformMatrix()
-    m:SetForward( ( e1:GetPos() - e2:GetPos() ):Cross( m:GetUp() ):GetNormalized() )
-    m:SetRight( m:GetForward():Cross( m:GetUp() ) )
+    if data.rotation then m:Rotate( data.rotation ) end
     data.matrix = m
 
     local fw_chassis = m:GetForward()
@@ -269,38 +327,31 @@ function mode:onThink( controller )
     local pos_wheel_l, ang_wheel_l = WorldToLocal( e1:GetPos(), e1:GetAngles(), pos_chassis, ang_chassis )
     local pos_wheel_r, ang_wheel_r = WorldToLocal( e2:GetPos(), e2:GetAngles(), pos_chassis, ang_chassis )
 
-    if not data.lwheel_width then
-        data.lwheel_width = ( e1:OBBMaxs() - e1:OBBMins() ):Length()
-    end
-    if not data.rwheel_width then
-        data.rwheel_width = ( e2:OBBMaxs() - e2:OBBMins() ):Length()
-    end
 
-    data.spindle.le_anglocal.y = -math.acos( 1 * e1:GetRight():Dot( fw_chassis ) ) * ( 180 / math.pi ) + 180
-    data.spindle.ri_anglocal.y = math.acos( 1 * e2:GetRight():Dot( fw_chassis ) ) * ( 180 / math.pi ) + 180
-
-    local offset = Vector( data.xwheel, pos_wheel_l.y + data.lwheel_width * data.ywheel + data.spindle.my, pos_wheel_l.z + data.spindle.mz )
+    local offset = Vector( data.wheelfwd, pos_wheel_l.y + data.wheelrad * data.spindleri + data.spindle.my, pos_wheel_l.z + data.spindle.mz )
     data.spindle:setwposangl( LocalToWorld( offset, data.spindle.le_anglocal, pos_chassis, ang_chassis ) )
 
-    local offset = Vector( data.xwheel, pos_wheel_r.y - data.rwheel_width * data.ywheel - data.spindle.my, pos_wheel_r.z + data.spindle.mz )
+    local offset = Vector( data.wheelfwd, pos_wheel_r.y - data.wheelrad * data.spindleri - data.spindle.my, pos_wheel_r.z + data.spindle.mz )
     data.spindle:setwposangr( LocalToWorld( offset, data.spindle.ri_anglocal, pos_chassis, ang_chassis ) )
+
 
     data.ujoint:setparent( data.spindle, data.spindle )
     data.arm:setparent( data.ujoint, data.ujoint )
 
-    local target = LocalToWorld( Vector( data.xwheel, math.Clamp( data.yarm, pos_wheel_r.y, pos_wheel_l.y ), data.zarm ), Angle(), pos_chassis, ang_chassis )
+
+    local target = LocalToWorld( Vector( data.wheelfwd, math.Clamp( data.pivotri, pos_wheel_r.y, pos_wheel_l.y ), data.pivotup ), _ang, pos_chassis, ang_chassis )
     local normal = tanktracktool.util.toLocalAxis( pos_chassis, ang_chassis, target - data.arm.le_posworld )
 
     data.arm.le_anglocal.p = math.atan2( normal.z, normal.y ) * ( 180 / math.pi )
     data.arm:setwangl( tanktracktool.util.toWorldAng( pos_chassis, ang_chassis, data.arm.le_anglocal ) )
-    data.arm.bone_2_length_l.z = -normal:Length() / data.scale + 3.746 + 3.254
+    data.arm.bone_2_length_l.z = -normal:Length() / data.scale + ( 3.746 + 3.254 )
 
-    local target = LocalToWorld( Vector( data.xwheel, -math.Clamp( data.yarm, pos_wheel_r.y, pos_wheel_l.y ), data.zarm ), Angle(), pos_chassis, ang_chassis )
+    local target = LocalToWorld( Vector( data.wheelfwd, -math.Clamp( data.pivotri, pos_wheel_r.y, pos_wheel_l.y ), data.pivotup ), _ang, pos_chassis, ang_chassis )
     local normal = tanktracktool.util.toLocalAxis( pos_chassis, ang_chassis, target - data.arm.ri_posworld )
 
     data.arm.ri_anglocal.p = math.atan2( normal.z, normal.y ) * ( 180 / math.pi )
     data.arm:setwangr( tanktracktool.util.toWorldAng( pos_chassis, ang_chassis, data.arm.ri_anglocal ) )
-    data.arm.bone_2_length_r.z = -normal:Length() / data.scale + 3.746 + 3.254
+    data.arm.bone_2_length_r.z = -normal:Length() / data.scale + ( 3.746 + 3.254 )
 
     local sp0 = LocalToWorld( data.shockoffset_l1, _ang, data.spindle.le_posworld, data.spindle.le_angworld )
     local sp1 = LocalToWorld( data.shockoffset_l2, _ang, pos_chassis, ang_chassis )
@@ -320,5 +371,79 @@ function mode:onDraw( controller, eyepos, eyedir, empty, flashlight )
         render.PushFlashlightMode( true )
         self:renderParts( controller, eyepos, eyedir, emptyCSENT, flashlightMODE )
         render.PopFlashlightMode()
+    end
+end
+
+local rgb_grn = Color( 0, 255, 0 )
+local rgb_red = Color( 255, 0, 0 )
+local rgb_blu = Color( 0, 0, 255 )
+local rgb_yel = Color( 255, 255, 0 )
+
+local function DrawAxis( m, len )
+    local pos = m:GetTranslation()
+    render.DrawLine( pos, pos + m:GetForward() * len, rgb_grn )
+    render.DrawLine( pos, pos + m:GetRight() * len, rgb_red )
+    render.DrawLine( pos, pos + m:GetUp() * len, rgb_blu )
+end
+
+function mode:overlay( controller, eyepos, eyedir, empty, flashlight )
+    local data = self:getData( controller )
+
+    local mpos = data.matrix:GetTranslation()
+    local mang = data.matrix:GetAngles()
+    local mfw = data.matrix:GetForward()
+    local mri = data.matrix:GetRight()
+    local mup = data.matrix:GetUp()
+
+    local length = 25
+    DrawAxis( data.matrix, length )
+
+    if controller.netvar.entities then
+
+        local f = ( mpos + mfw * length ):ToScreen()
+        local u = ( mpos + mup * length ):ToScreen()
+
+        cam.Start2D()
+
+            local cpos = controller.netvar.entities.Chassis:GetPos():ToScreen()
+            draw.SimpleTextOutlined( "Chassis", "Trebuchet18", cpos.x, cpos.y, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+
+
+            local lpos = controller.netvar.entities.LeftWheel:GetPos():ToScreen()
+            draw.SimpleTextOutlined( "LeftWheel", "Trebuchet18", lpos.x, lpos.y, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+
+
+            local rpos = controller.netvar.entities.RightWheel:GetPos():ToScreen()
+            draw.SimpleTextOutlined( "RightWheel", "Trebuchet18", rpos.x, rpos.y, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+
+
+            local ldot = ( controller.netvar.entities.LeftWheel:GetPos() - mpos ):Dot( mri )
+            local rdot = ( controller.netvar.entities.RightWheel:GetPos() - mpos ):Dot( mri )
+
+            if not ( ldot < 0 and rdot > 0 ) then
+                draw.SimpleTextOutlined( "Invalid chassis configuration", "Trebuchet24", u.x, u.y, Color( 255, 255, 0 ), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+                draw.SimpleTextOutlined( "Try changing parameters in editor", "Trebuchet18", u.x, u.y + 24, Color( 255, 255, 0 ), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, color_black )
+
+                surface.SetDrawColor( 255, 255, 0 )
+                surface.DrawLine( f.x, f.y, lpos.x, lpos.y )
+                surface.DrawLine( f.x, f.y, rpos.x, rpos.y )
+            else
+                surface.SetDrawColor( 0, 255, 0 )
+                surface.DrawLine( f.x, f.y, lpos.x, lpos.y )
+                surface.DrawLine( f.x, f.y, rpos.x, rpos.y )
+            end
+
+        cam.End2D()
+
+        render.SetColorMaterial()
+
+        local offset = WorldToLocal( controller.netvar.entities.LeftWheel:GetPos(), Angle(), mpos, mang )
+        local target = LocalToWorld( Vector( data.wheelfwd, offset.y, offset.z ), Angle(), mpos, mang )
+        render.DrawSphere( target, data.wheelrad, 8, 8, Color( 255, 255, 255, 50 ), true )
+
+        local offset = WorldToLocal( controller.netvar.entities.RightWheel:GetPos(), Angle(), mpos, mang )
+        local target = LocalToWorld( Vector( data.wheelfwd, offset.y, offset.z ), Angle(), mpos, mang )
+        render.DrawSphere( target, data.wheelrad, 8, 8, Color( 255, 255, 255, 50 ), true )
+
     end
 end

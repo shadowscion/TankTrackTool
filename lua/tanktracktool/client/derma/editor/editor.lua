@@ -54,6 +54,14 @@ function editor.openUI( ent )
     edit:Dock( FILL )
 end
 
+local cv_overlay = CreateClientConVar( "tanktracktool_editor_overlay", "1", true, false, "enable editor overlays" )
+cvars.AddChangeCallback( "tanktracktool_editor_overlay", function( convar_name, value_old, value_new )
+    if not tanktracktool.render then tanktracktool.render = {} end
+    tanktracktool.render.overlay = tobool( value_new )
+end )
+if not tanktracktool.render then tanktracktool.render = {} end
+tanktracktool.render.overlay = cv_overlay:GetBool()
+
 
 --[[
     VGUI
@@ -176,6 +184,23 @@ function PANEL:AddNode( strName, strIcon )
     return pNode
 end
 
+function PANEL:RebuildSettings()
+    local cat = self:AddNode( "TOOL SETTINGS" )
+
+    local node = cat:AddNode( "Enable Overlay" )
+    node:Setup( { type = "checkbox" } )
+
+    node.DataUpdate = function( _ )
+        if not IsValid( self.m_Entity ) then self:EntityLost() return end
+        node:SetValue( cv_overlay:GetBool() )
+    end
+    node.DataChanged = function( _, val )
+        if not IsValid( self.m_Entity ) then self:EntityLost() return end
+        self.m_Entity:netvar_callback( "editor_setting", self, self.m_Entity, "overlay", tobool( val ) )
+        cv_overlay:SetBool( tobool( val ) )
+    end
+end
+
 function PANEL:RebuildControls()
     self.coroutine = coroutine.create( function()
         self:Clear()
@@ -189,6 +214,8 @@ function PANEL:RebuildControls()
         local editor = self.m_Entity.netvar
 
         self.m_iLabelWidth = 0
+
+        self:RebuildSettings()
 
         self.Categories = {}
         self.Variables  = {}
@@ -213,7 +240,7 @@ function PANEL:Think()
     while SysTime() - t < 0.01 do
         local a, b = coroutine.resume( self.coroutine )
         if not a or b then
-            --if b then print( b ) end
+            if b then print( b ) end
             self.coroutine = nil
             self.mywindow.btnClose:SetImage( "gui/cross.png" )
             break

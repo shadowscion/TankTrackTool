@@ -80,6 +80,8 @@ function PANEL:Setup( editData )
             editors[i]:SetEnabled( b )
         end
     end
+
+    self:GetRow().nonvar = true
 end
 
 derma.DefineControl( "tanktracktoolEditor_Bitfield", "", PANEL, "tanktracktoolEditor_Generic" )
