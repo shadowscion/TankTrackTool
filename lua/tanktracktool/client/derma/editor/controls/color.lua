@@ -108,8 +108,15 @@ function PANEL:Setup( editData )
         local col = inner
         mixer:SetColor( col )
 
-        local x, y = self.m_Editor:GetChildPosition( self:GetRow() )
-        mixer:SetPos( x - mixer:GetWide() + self:GetRow():GetWide(), y + self:GetRow().Label:GetTall() )
+        local sx, sy = self.m_Editor:GetChildPosition( self:GetRow() )
+        mixer:SetPos( sx - mixer:GetWide() + self:GetRow():GetWide(), sy - self.m_Editor.VBar:GetOffset() + self:GetRow().Label:GetTall() )
+
+        --local x, y = self.m_Editor:ScreenToLocal( gui.MouseX(), gui.MouseY() )
+        --local cx, cy = self.m_Editor:GetChildPosition( editor )
+        --mixer:SetPos( cx, cy )
+
+        --local x, y = self.m_Editor:GetChildPosition( self:GetRow() )
+        --mixer:SetPos( x - mixer:GetWide() + self:GetRow():GetWide(), y + self:GetRow().Label:GetTall() )
     end
 
     editor.DoRightClick = function()

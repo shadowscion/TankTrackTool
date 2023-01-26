@@ -53,16 +53,15 @@ netvar:var( "matrixix", "Bool", { def = 0, title = "invert forward" } )
 netvar:var( "matrixiz", "Bool", { def = 0, title = "invert up" } )
 
 netvar:subcategory( nil )
-netvar:var( "wheelrad", "Float", { def = 0, min = 0, max = 1000, title = "wheel radius" } )
+netvar:var( "wheelrad", "Float", { def = 15, min = 0, max = 1000, title = "wheel radius" } )
 netvar:var( "wheelfwd", "Float", { def = 0, min = -1000, max = 1000, title = "wheel position (x)" } )
 
 
 netvar:category( "Linkages" )
 netvar:var( "scale", "Float", { def = 1, min = 0, max = 50, title = "model scale" } )
 netvar:var( "spindleri", "Float", { def = 0, min = -1, max = 1, title = "spindle position (y)" } )
-netvar:var( "pivotri", "Float", { def = 0, min = -1000, max = 1000, title = "pivot position (y)" } )
-netvar:var( "pivotup", "Float", { def = 0, min = -1000, max = 1000, title = "pivot position (z)" } )
-
+netvar:var( "pivotri", "Float", { def = 15, min = -1000, max = 1000, title = "pivot position (y)" } )
+netvar:var( "pivotup", "Float", { def = -10, min = -1000, max = 1000, title = "pivot position (z)" } )
 
 
 netvar:subcategory( "Colors" )
@@ -76,18 +75,16 @@ netvar:var( "ujointmat", "String", { def = "phoenix_storms/gear", title = "u-joi
 netvar:var( "armmat", "String", { def = "phoenix_storms/gear", title = "control arm" } )
 
 
-
-
 netvar:category( "Shock Absorber" )
 
 netvar:subcategory( "Setup" )
 netvar:var( "shocktype", "Combo", { def = "coil_over", values = { coil_over = 1, spring = 2, covered = 3, none = 4 }, sort = SortedPairsByValue, title = "type" } )
-netvar:var( "shockscale", "Float", { def = 1, min = 0, max = 50, title = "model scale" } )
-netvar:var( "shocklencyl", "Float", { def = 12, min = 0, max = 1000, title = "cylinder length", help = "absolute units" } )
+netvar:var( "shockscale", "Float", { def = 0.75, min = 0, max = 50, title = "model scale" } )
+netvar:var( "shocklencyl", "Float", { def = 6, min = 0, max = 1000, title = "cylinder length", help = "absolute units" } )
 netvar:var( "shocklenret", "Float", { def = 0.75, min = 0, max = 1, title = "retainer offset", help = "% of cylinder length" } )
 netvar:var( "shockcoilradius", "Float", { def = 0.25, min = 0, max = 1, title = "coil wire radius", help = "% of model scale" } )
-netvar:var( "shockcoilcount", "Int", { def = 12, min = 1, max = 50, title = "coil turn count" } )
-netvar:var( "shockoffset1", "Vector", { def = Vector(), min = Vector( -1000, -1000, -1000 ), max = Vector( 1000, 1000, 1000 ), title = "local offset" } )
+netvar:var( "shockcoilcount", "Int", { def = 8, min = 1, max = 50, title = "coil turn count" } )
+netvar:var( "shockoffset1", "Vector", { def = Vector( 0, 20, 20 ), min = Vector( -1000, -1000, -1000 ), max = Vector( 1000, 1000, 1000 ), title = "local offset" } )
 
 netvar:subcategory( "Colors" )
 netvar:var( "shockrodcolor", "Color", { def = "", title = "piston" } )
@@ -166,7 +163,7 @@ end
 
 ]]
 local mode = tanktracktool.render.mode()
-mode:addCSent( "spindle", "ujoint", "arm" )
+mode:addCSent( "spindle", "ujoint", "arm", "driveshaft", "rollbar" )
 
 function ENT:Think()
     self.BaseClass.Think( self )
@@ -233,12 +230,80 @@ function mode:onInit( controller )
         csent:SetupBones()
     end
 
+
+    data.driveshaft = self:addPart( controller, "driveshaft" )
+    data.driveshaft:setmodel( "models/tanktracktool/suspension/linkage_driveshaft.mdl" )
+    data.driveshaft:setscale( Vector( data.scale, data.scale, data.scale ) * 0.75 )
+    data.driveshaft.le_poslocal = Vector( 1.84827, 0, 3.33601 ) * data.scale
+    data.driveshaft.ri_poslocal = Vector( 1.84827, 0, 3.33601 ) * data.scale
+    data.driveshaft.le_anglocal = Angle( 0, -90, 180 )
+    data.driveshaft.ri_anglocal = Angle( 0, -90, 0 )
+    data.driveshaft.bone_1_length_l = Vector()
+    data.driveshaft.bone_1_length_r = Vector()
+    data.driveshaft.scalar = data.scale * 0.75
+
+    data.driveshaft.setupscale = function( self, csent, left, controller )
+        csent:EnableMatrix( "RenderMultiply", self.scale_m )
+        if left then
+            csent:ManipulateBonePosition( 1, self.bone_1_length_l )
+        else
+            csent:ManipulateBonePosition( 1, self.bone_1_length_r )
+        end
+        csent:SetupBones()
+    end
+
+
+
+    data.rollbar = self:addPart( controller, "rollbar" )
+    data.rollbar:setnodraw( false, true )
+    data.rollbar:setmodel( "models/tanktracktool/suspension/linkage_rollbar.mdl" )
+    data.rollbar:setscale( Vector( data.scale, data.scale, data.scale ) )
+    data.rollbar.bone_length_l = Vector()
+    data.rollbar.bone_length_r = Vector()
+
+    data.rollbar.le_poslocal = Vector( data.wheelfwd - ( 0.7 + 0.863351 + 2 ) * data.scale, 0, data.pivotup * 0.75 )
+
+    data.rollbar.setupscale = function( self, csent, left, controller )
+        csent:EnableMatrix( "RenderMultiply", self.scale_m )
+        csent:ManipulateBonePosition( 0, self.bone_length_l )
+        csent:ManipulateBonePosition( 1, self.bone_length_r )
+        csent:SetupBones()
+    end
+
+    data.rollbar.beam_mat = Material( "tanktracktool/cable_white" )
+    data.rollbar.beam_col = string.ToColor( values.shocktopcolor )
+    data.rollbar.beam_w = data.scale * 0.25
+
+    data.rollbar.beam_le_wpos1 = Vector()
+    data.rollbar.beam_le_wpos2 = Vector()
+    data.rollbar.beam_ri_wpos1 = Vector()
+    data.rollbar.beam_ri_wpos2 = Vector()
+
+    data.rollbar.postrender = function( self )
+        local w = self.beam_w
+
+        render.SetMaterial( self.beam_mat )
+
+        render.StartBeam( 2 )
+        render.AddBeam( self.beam_le_wpos1, w, 0, self.beam_col )
+        render.AddBeam( self.beam_le_wpos2, w, 1, self.beam_col )
+        render.EndBeam()
+
+        render.StartBeam( 2 )
+        render.AddBeam( self.beam_ri_wpos1, w, 0, self.beam_col )
+        render.AddBeam( self.beam_ri_wpos2, w, 1, self.beam_col )
+        render.EndBeam()
+    end
+
     data.spindle:setcolor( values.spindlecolor )
     data.spindle:setmaterial( values.spindlemat )
     data.ujoint:setcolor( values.ujointcolor )
     data.ujoint:setmaterial( values.ujointmat )
     data.arm:setcolor( values.armcolor )
     data.arm:setmaterial( values.armmat )
+
+    data.rollbar:setcolor( values.shocktopcolor )
+
 
     local shock = tanktracktool.render.addshock( self, controller )
     data.shock = shock
@@ -254,7 +319,7 @@ function mode:onInit( controller )
     shock.info.botcolor = values.shockbotcolor
     shock.info.cylcolor = values.shockcylcolor
     shock.info.retcolor = values.shockretcolor
-    shock.info.wirecolor = color_white --values.shockwirecolor
+    shock.info.wirecolor = values.shockwirecolor
 
     shock.info.rodmat = values.shockrodmat
     shock.info.topmat = values.shocktopmat
@@ -263,14 +328,17 @@ function mode:onInit( controller )
     shock.info.retmat = values.shockretmat
     shock.info.covermat = values.shockcovermat
 
-    data.shockoffset_l1 = Vector( -0.5, 0, 6 ) * data.scale
-    data.shockoffset_r1 = Vector( -0.5, 0, 6 ) * data.scale
+    data.shockoffset_l1 = Vector( -0.5, 0, 6 - 0.5 ) * data.scale
+    data.shockoffset_r1 = Vector( -0.5, 0, 6 - 0.5 ) * data.scale
     data.shockoffset_l2 = Vector( data.wheelfwd + values.shockoffset1.x, values.shockoffset1.y, values.shockoffset1.z )
     data.shockoffset_r2 = Vector( data.wheelfwd + values.shockoffset1.x, -values.shockoffset1.y, values.shockoffset1.z )
     data.shock:init( true, true )
 
+    data.shock.parts.tip1:setnodraw( true, true )
+    data.shock.parts.tip2:setnodraw( true, true )
+
     -- for k, v in pairs( self:getParts( controller ) ) do
-    --     v:setcolor( HSVToColor( ( 360 / #self:getParts( controller ) ) * k, 1, 1 ) )
+    --     v:setcolor( HSVToColor( ( 360 / #self:getParts( controller ) ) * k, 0.667, 1 ) )
     --     v:setmaterial( "" )
     -- end
 
@@ -328,16 +396,24 @@ function mode:onThink( controller )
     local pos_wheel_r, ang_wheel_r = WorldToLocal( e2:GetPos(), e2:GetAngles(), pos_chassis, ang_chassis )
 
 
+    -- spindles
+    data.spindle.le_anglocal.y = -math.acos( e1:GetRight():Dot( m:GetForward() ) ) * ( 180 / math.pi ) + 180
+
     local offset = Vector( data.wheelfwd, pos_wheel_l.y + data.wheelrad * data.spindleri + data.spindle.my, pos_wheel_l.z + data.spindle.mz )
     data.spindle:setwposangl( LocalToWorld( offset, data.spindle.le_anglocal, pos_chassis, ang_chassis ) )
+    data.rollbar.bone_length_l.y = ( offset.y ) / data.scale - 6.5
+
+    data.spindle.ri_anglocal.y = math.acos( e2:GetRight():Dot( m:GetForward() ) ) * ( 180 / math.pi ) + 180
 
     local offset = Vector( data.wheelfwd, pos_wheel_r.y - data.wheelrad * data.spindleri - data.spindle.my, pos_wheel_r.z + data.spindle.mz )
     data.spindle:setwposangr( LocalToWorld( offset, data.spindle.ri_anglocal, pos_chassis, ang_chassis ) )
-
+    data.rollbar.bone_length_r.y = ( offset.y ) / data.scale + 6.5
 
     data.ujoint:setparent( data.spindle, data.spindle )
-    data.arm:setparent( data.ujoint, data.ujoint )
 
+
+    -- control arms
+    data.arm:setparent( data.ujoint, data.ujoint )
 
     local target = LocalToWorld( Vector( data.wheelfwd, math.Clamp( data.pivotri, pos_wheel_r.y, pos_wheel_l.y ), data.pivotup ), _ang, pos_chassis, ang_chassis )
     local normal = tanktracktool.util.toLocalAxis( pos_chassis, ang_chassis, target - data.arm.le_posworld )
@@ -353,6 +429,36 @@ function mode:onThink( controller )
     data.arm:setwangr( tanktracktool.util.toWorldAng( pos_chassis, ang_chassis, data.arm.ri_anglocal ) )
     data.arm.bone_2_length_r.z = -normal:Length() / data.scale + ( 3.746 + 3.254 )
 
+
+    -- driveshafts
+    data.driveshaft:setparent( data.spindle, data.spindle )
+
+    local target = LocalToWorld( Vector( data.wheelfwd, math.Clamp( data.pivotri, pos_wheel_r.y, pos_wheel_l.y ) * 0.5, data.pivotup * 0.25 ), _ang, pos_chassis, ang_chassis )
+    local normal = tanktracktool.util.toLocalAxis( pos_chassis, ang_chassis, target - data.driveshaft.le_posworld )
+
+    data.driveshaft.le_anglocal.p = math.atan2( normal.z, normal.y ) * ( 180 / math.pi )
+    data.driveshaft:setwangl( tanktracktool.util.toWorldAng( pos_chassis, ang_chassis, data.driveshaft.le_anglocal ) )
+    data.driveshaft.bone_1_length_l.x = -normal:Length() / data.driveshaft.scalar + 2
+
+    local target = LocalToWorld( Vector( data.wheelfwd, -math.Clamp( data.pivotri, pos_wheel_r.y, pos_wheel_l.y ) * 0.5, data.pivotup * 0.25 ), _ang, pos_chassis, ang_chassis )
+    local normal = tanktracktool.util.toLocalAxis( pos_chassis, ang_chassis, target - data.driveshaft.ri_posworld )
+
+    data.driveshaft.ri_anglocal.p = math.atan2( normal.z, normal.y ) * ( 180 / math.pi )
+    data.driveshaft:setwangr( tanktracktool.util.toWorldAng( pos_chassis, ang_chassis, data.driveshaft.ri_anglocal ) )
+    data.driveshaft.bone_1_length_r.x = -normal:Length() / data.driveshaft.scalar + 2
+
+
+    -- rollbar
+    data.rollbar.le_anglocal.p = -math.NormalizeAngle( 180 - data.driveshaft.le_anglocal.p + data.driveshaft.ri_anglocal.p ) * 3 --* 0.333
+    data.rollbar:setwposangl( LocalToWorld( data.rollbar.le_poslocal, data.rollbar.le_anglocal, pos_chassis, ang_chassis ) )
+
+    data.rollbar.beam_le_wpos1 = data.rollbar:toworldl( Vector( 0.863352, data.rollbar.bone_length_l.y + 6, 0 ) * data.scale )
+    data.rollbar.beam_le_wpos2 = data.spindle:toworldl( Vector( -0.5, 0.7, 5.5 ) * data.scale )
+    data.rollbar.beam_ri_wpos1 = data.rollbar:toworldl( Vector( 0.863352, data.rollbar.bone_length_r.y - 6, 0 ) * data.scale )
+    data.rollbar.beam_ri_wpos2 = data.spindle:toworldr( Vector( -0.5, -0.7, 5.5 ) * data.scale )
+
+
+    -- shocks
     local sp0 = LocalToWorld( data.shockoffset_l1, _ang, data.spindle.le_posworld, data.spindle.le_angworld )
     local sp1 = LocalToWorld( data.shockoffset_l2, _ang, pos_chassis, ang_chassis )
     local sp2 = LocalToWorld( data.shockoffset_r1, _ang, data.spindle.ri_posworld, data.spindle.ri_angworld )

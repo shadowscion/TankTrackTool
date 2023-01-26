@@ -63,6 +63,24 @@ end
 --[[
     PARTS
 ]]
+local _pos = Vector()
+local _ang = Angle()
+
+local function toworldl( self, pos )
+    return LocalToWorld( pos, _ang, self.le_posworld, self.le_angworld )
+end
+local function toworldr( self, pos )
+    return LocalToWorld( pos, _ang, self.ri_posworld, self.ri_angworld )
+end
+local function toworldangl( self, ang )
+    local p, a = LocalToWorld( _pos, ang, self.le_posworld, self.le_angworld )
+    return a
+end
+local function toworldangr( self, ang )
+    local p, a = LocalToWorld( _pos, ang, self.ri_posworld, self.ri_angworld )
+    return a
+end
+
 local function setlposl( self, pos ) self.le_poslocal = pos end
 
 local function setlposr( self, pos ) self.ri_poslocal = pos end
@@ -203,6 +221,8 @@ local function renderme( self, empty )
             csent:SetupBones()
             csent:DrawModel()
         end
+
+        if self.postrender then self:postrender() end
     end
 end
 
@@ -340,6 +360,11 @@ function tanktracktool.render.mode( TYPE_ASSEM, CSENTS )
             ri_posworld = Vector(),
             ri_anglocal = Angle(),
             ri_angworld = Angle(),
+
+            toworldl = toworldl,
+            toworldr = toworldr,
+            toworldangl = toworldangl,
+            toworldangr = toworldangr,
 
             renderme = renderme,
             setlposl = setlposl,
@@ -546,6 +571,8 @@ function tanktracktool.render.addshock( mode, controller )
     self.info.retmat = ""
     self.info.covermat = ""
 
+    self.info.mdltip = "models/tanktracktool/suspension/shock_piston_tip1.mdl"
+
     function self:setnodraw( l, r )
         for k, v in pairs( self.parts ) do v:setnodraw( l, r ) end
     end
@@ -555,13 +582,13 @@ function tanktracktool.render.addshock( mode, controller )
         if not self.parts or self.info.scale == 0 then self.parts = nil return end
 
         self.parts.tip1 = mode:addPart( controller, "shock_tip" )
-        self.parts.tip1:setmodel( "models/tanktracktool/suspension/shock_piston_tip1.mdl" )
+        self.parts.tip1:setmodel( self.info.mdltip )
         self.parts.tip1:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
         self.parts.tip1:setcolor( self.info.rodcolor )
         self.parts.tip1:setmaterial( self.info.rodmat )
 
         self.parts.tip2 = mode:addPart( controller, "shock_tip" )
-        self.parts.tip2:setmodel( "models/tanktracktool/suspension/shock_piston_tip1.mdl" )
+        self.parts.tip2:setmodel( self.info.mdltip )
         self.parts.tip2.le_anglocal.p = 180
         self.parts.tip2.ri_anglocal.p = 180
         self.parts.tip2:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
