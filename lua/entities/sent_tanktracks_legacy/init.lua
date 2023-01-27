@@ -1,109 +1,126 @@
 
-AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "shared.lua" )
+AddCSLuaFile( "cl_init.lua" )
 include( "shared.lua" )
 
-util.AddNetworkString( "tanktracktool_legacy_sync" )
-
-function ENT:SpawnFunction( ply, tr, ClassName )
-    if not tr.Hit then
-        return
-    end
-
-    local model = ply:GetInfo( "tanktracktool_model" )
-    if not util.IsValidModel( model ) then model = "models/hunter/plates/plate.mdl" end
-
-    local ent = ents.Create( ClassName )
-    ent:SetModel( model )
-    ent:SetPos( tr.HitPos + tr.HitNormal * 40 )
-    ent:Spawn()
-    ent:Activate()
-
-    local phys = ent:GetPhysicsObject()
-    if IsValid( phys ) then
-        phys:EnableMotion( false )
-        phys:Wake()
-    end
-
-    return ent
+function ENT:netvar_nme( data )
+    return data
 end
 
-function ENT:Initialize()
-    self.BaseClass.Initialize( self )
 
-    self:PhysicsInit( SOLID_VPHYSICS )
-    self:SetMoveType( MOVETYPE_VPHYSICS )
-    self:SetSolid( SOLID_VPHYSICS )
-end
+--[[
+    sort wheels based on forward position
+    separated by a table of wheels and a table of roller wheels
+]]
+local function GetSortedWheels( chassis, wheels, rollers, rotate )
+    local matrix = chassis:GetWorldTransformMatrix()
+    if rotate then matrix:Rotate( rotate ) end
+    local pos = matrix:GetTranslation() + matrix:GetForward() * 12345
+    local tbl = {}
 
-function ENT:SetControllerLinks( tbl )
-    if not istable( tbl ) then tbl = {} end
-
-    self.ttdata_links = tbl
-    self.SyncLinks = true
-
-    local links = {}
-    for k, v in pairs( tbl ) do
-        if IsValid( v ) then table.insert( links, v:EntIndex() ) end
-    end
-
-    duplicator.StoreEntityModifier( self, "tanktracktool", { links = links } )
-end
-
-function ENT:PostEntityPaste( ply, ent, other )
-    local dupe = ent.EntityMods
-    if not dupe then
-        ent:SetControllerLinks()
-        return
-    end
-
-    local links
-
-    if dupe.tanktracktool then
-        links = dupe.tanktracktool.links
-    elseif dupe.ttc_dupe_info then
-        links = dupe.ttc_dupe_info.link_ents
-        duplicator.ClearEntityModifier( self, "ttc_dupe_info" )
-    end
-
-    if not links then
-        ent:SetControllerLinks()
-    else
-        local ret = {}
-        for i, id in pairs( links ) do
-            ret[i] = other[id]
+    for k, ent in pairs( wheels ) do
+        if not isentity( ent ) then ent = k end
+        if isentity( ent ) and IsValid( ent ) then
+            table.insert( tbl, ent )
+            ent.rollerTemp = nil
+            ent.sortPosTemp = ent:GetPos():Distance( pos )
+            if #tbl > 32 then break end
         end
-        ent:SetControllerLinks( ret )
     end
-end
 
-function ENT:Think()
-    self.BaseClass.Think( self )
-    if self.SyncLinks then
-        if self.ttdata_links then
-            net.Start( "tanktracktool_legacy_sync" )
-            net.WriteUInt( self:EntIndex(), 32 )
-            net.WriteTable( self.ttdata_links )
-            if istable( self.SyncLinks ) then net.Send( self.SyncLinks ) else net.Broadcast() end
+    for k, ent in pairs( rollers ) do
+        if not isentity( ent ) then ent = k end
+        if isentity( ent ) and IsValid( ent ) then
+            table.insert( tbl, ent )
+            ent.rollerTemp = true
+            ent.sortPosTemp = ent:GetPos():Distance( pos )
+            if #tbl > 32 then break end
         end
-        self.SyncLinks = nil
+    end
+
+    table.sort( tbl, function( e1, e2 )
+        local this = e1.rollerTemp
+        local that = e2.rollerTemp
+
+        if this ~= that then return that and not this end
+        if this then return e1.sortPosTemp > e2.sortPosTemp else return e1.sortPosTemp < e2.sortPosTemp end
+    end )
+
+    for k, ent in pairs( tbl ) do
+        ent.rollerTemp = nil
+        ent.sortPosTemp = nil
+    end
+
+    table.insert( tbl, 1, chassis )
+
+    return tbl
+end
+
+
+--[[
+    check if all ents are to one side of the chassis
+    optional filter function
+]]
+local function Filter( ent )
+    if not isentity( ent ) or not IsValid( ent ) or ent:IsPlayer() or ent:IsVehicle() or ent:IsNPC() or ent:IsWorld() then return true end
+end
+
+local function CheckParallelism( chassis, tbl, rotate, filter )
+    local matrix = chassis:GetWorldTransformMatrix()
+    if rotate then matrix:Rotate( rotate ) end
+    local pos = matrix:GetTranslation()
+    local dir = matrix:GetRight()
+    local dot
+
+    for k, ent in pairs( tbl ) do
+        if filter and filter( ent ) then return "invalid wheel or chassis entity " .. tostring( ent ) end
+
+        if ent ~= chassis then
+            local d = dir:Dot( ( ent:GetPos() - pos ):GetNormalized() ) > 0
+            if dot == nil then dot = d end
+            if dot ~= d then
+                return "wheels must all be on the same side of the chassis"
+            end
+        end
+    end
+
+    return false
+end
+
+
+--[[
+    sort wheels before sending the table to netvar linking function
+    prop protection is checked there
+]]
+function ENT:netvar_setLinks( tbl, ply )
+    if not istable( tbl ) then
+        return tanktracktool.netvar.setLinks( self, {}, ply )
+    end
+
+    local rotate = tobool( self.netvar.values.systemRotate ) and Angle( 0, -90, 0 )
+
+    --if istable( tbl.Wheel ) and istable( tbl.Roller ) and isentity( tbl.Chassis ) then
+    if isentity( tbl.Chassis ) then
+        tbl.Wheel = tbl.Wheel or {}
+        tbl.Roller = tbl.Roller or {}
+        tbl = GetSortedWheels( tbl.Chassis, tbl.Wheel, tbl.Roller, rotate )
+    end
+
+    if istable( tbl ) and table.IsSequential( tbl ) then
+        local isp = CheckParallelism( tbl[1], tbl, rotate, Filter )
+        if isp then
+            if IsValid( ply ) then ply:ChatPrint( isp ) end
+            return
+        end
+
+        return tanktracktool.netvar.setLinks( self, tbl, ply )
     end
 end
 
-net.Receive( "tanktracktool_legacy_sync", function( len, ply )
-    if not IsValid( ply ) then return end
 
-    local ent = Entity( net.ReadUInt( 32 ) )
-    if not IsValid( ent ) or ent:GetClass() ~= "sent_tanktracks_legacy" then return end
-
-    if not ent.SyncLinks then ent.SyncLinks = {} end
-    if istable( ent.SyncLinks ) then
-        table.insert( ent.SyncLinks, ply )
-    end
-end )
-
-
--- LEGACY COMPAT
+--[[
+    legacy... this is for ttc
+]]
 local files_legacy = {
     track_sheridan = true,
     track_kingtiger = true,
@@ -179,29 +196,27 @@ duplicator.RegisterEntityClass( "gmod_ent_ttc", function( ply, data )
 
     local legacy = data.DT
     if legacy then
-        local update = false --not game.SinglePlayer()
-
         local color = isvector( legacy.TTC_Color ) and legacy.TTC_Color or Vector( 1, 1, 1 )
-        ent:SetValueNME( update, "trackColor", nil, string.format( "%d %d %d 255", color.x * 255, color.y * 255, color.z * 255 ) )
-        ent:SetValueNME( update, "trackMaterial", nil, GetMaterial( legacy.TTC_Material ) )
+        ent:netvar_set( "trackColor", nil, string.format( "%d %d %d 255", color.x * 255, color.y * 255, color.z * 255 ) )
+        ent:netvar_set( "trackMaterial", nil, GetMaterial( legacy.TTC_Material ) )
 
-        ent:SetValueNME( update, "trackTension", nil, legacy.TTC_Tension )
+        ent:netvar_set( "trackTension", nil, legacy.TTC_Tension )
 
-        ent:SetValueNME( update, "trackWidth", nil, legacy.TTC_Width )
-        ent:SetValueNME( update, "trackOffsetY", nil, legacy.TTC_Offset )
-        ent:SetValueNME( update, "wheelSprocket", nil, legacy.TTC_Sprocket or 1 )
+        ent:netvar_set( "trackWidth", nil, legacy.TTC_Width )
+        ent:netvar_set( "trackOffsetY", nil, legacy.TTC_Offset )
+        ent:netvar_set( "wheelSprocket", nil, legacy.TTC_Sprocket or 1 )
 
-        ent:SetValueNME( update, "wheelRadius", nil, legacy.TTC_Radius )
-        ent:SetValueNME( update, "rollerRadius", nil, legacy.TTC_RollerRadius )
+        ent:netvar_set( "wheelRadius", nil, legacy.TTC_Radius )
+        ent:netvar_set( "rollerRadius", nil, legacy.TTC_RollerRadius )
 
         local height = ( legacy.TTC_Height or 3 ) * 0.5 + 0.5
-        ent:SetValueNME( update, "trackHeight", nil, height )
+        ent:netvar_set( "trackHeight", nil, height )
 
         local offset = legacy.TTC_Radius or 0
-        ent:SetValueNME( update, "wheelRadius", nil, offset - height * 0.5 )
+        ent:netvar_set( "wheelRadius", nil, offset - height * 0.5 )
 
         local offset = legacy.TTC_RollerRadius or 0
-        ent:SetValueNME( update, "rollerRadius", nil, offset - height * 0.5 )
+        ent:netvar_set( "rollerRadius", nil, offset - height * 0.5 )
     end
 
     ply:AddCount( "sent_tanktracks_legacy", ent )

@@ -1,288 +1,197 @@
 
-DEFINE_BASECLASS( "base_nme" )
+DEFINE_BASECLASS( "base_tanktracktool" )
 
-ENT.Author = "shadowscion"
-ENT.Category = "TankTrackTool"
+ENT.Type      = "anim"
 ENT.Spawnable = true
 ENT.AdminOnly = false
+ENT.Category  = "tanktracktool"
 
-local tankTrackVars = NeedMoreEdits.New()
+local netvar = tanktracktool.netvar.new()
 
-function ENT:SetupNME()
-    return tankTrackVars
+local default = {
+    whnSuspension = {
+        [1] = 0,
+        [2] = 0,
+    },
+    whnOverride = {
+        [1] = 1,
+        [2] = 1,
+    },
+    whnRadius = {
+        [1] = 10,
+        [2] = 10,
+    },
+    whnWidth = {
+        [1] = 20,
+        [2] = 20,
+    },
+    whnModel = {
+        [1] = "models/sprops/trans/miscwheels/tank15.mdl",
+        [2] = "models/sprops/trans/miscwheels/tank15.mdl",
+    },
+    whnBodygroup = {
+        [1] = "001",
+    },
+}
+
+function ENT:netvar_setup()
+    return netvar, default
 end
 
-function ENT:DefaultNME( update )
-    -- sprocket
-    self:SetValueNME( update, "whnSuspension", 1, 0 )
-    self:SetValueNME( update, "whnOverride", 1, 1 )
-    self:SetValueNME( update, "whnRadius", 1, 10 )
-    self:SetValueNME( update, "whnWidth", 1, 20 )
-    self:SetValueNME( update, "whnModel", 1, "models/sprops/trans/miscwheels/tank15.mdl" )
-    self:SetValueNME( update, "whnBodygroup", 1, "001" )
-
-    -- idler
-    self:SetValueNME( update, "whnSuspension", 2, 0 )
-    self:SetValueNME( update, "whnOverride", 2, 1 )
-    self:SetValueNME( update, "whnRadius", 2, 10 )
-    self:SetValueNME( update, "whnWidth", 2, 20 )
-    self:SetValueNME( update, "whnModel", 2, "models/sprops/trans/miscwheels/tank15.mdl" )
-end
-
-
-tankTrackVars:Category( "System" )
-
-tankTrackVars:Var( "systemOffsetX", "Float", { min = -1000, max = 1000, def = 0, title = "x offset" } )
-
-tankTrackVars:Var( "systemOffsetY", "Float", { min = -1000, max = 1000, def = 0, title = "y offset" } )
-
-tankTrackVars:Var( "systemOffsetZ", "Float", { min = -1000, max = 1000, def = 0, title = "z offset" } )
-
-tankTrackVars:Var( "systemEffScale", "Float", { min = 0, max = 1, def = 0.5, title = "ground fx scale" } )
-
-tankTrackVars:Var( "systemMirror", "Bool", { def = 1, title = "mirror" } )
-
-
-tankTrackVars:Category( "Suspension" )
-
-tankTrackVars:Var( "suspensionType", "Combo", { values = { classic = 1, torsion = 2, bogie = 3 }, def = "classic", title = "type" } )
-
-tankTrackVars:Var( "suspensionX", "Float", { min = 0, max = 1000, def = 200, title = "length" } )
-
-tankTrackVars:Var( "suspensionY", "Float", { min = 0, max = 1000, def = 100, title = "width" } )
-
-tankTrackVars:Var( "suspensionZ", "Float", { min = 0, max = 1000, def = 40, title = "height" } )
-
-tankTrackVars:Var( "suspensionInterleave", "Float", { min = -1, max = 1, def = 0, title = "interleave" } )
-
-tankTrackVars:Var( "suspensionPairGap", "Float", { min = -1, max = 1, def = 0, title = "paired spacing" } )
-
-
-tankTrackVars:SubCategory( "model" )
-
-tankTrackVars:Var( "suspensionColor", "Color", { def = "", title = "color" } )
-
-tankTrackVars:Var( "suspensionMaterial", "String", { def = "", title = "material" } )
-
-tankTrackVars:Var( "suspensionTDamp", "Int", { min = 0, max = 3, def = 0, title = "damper_count" } )
-
-tankTrackVars:Var( "suspensionTDampZ", "Float", { min = 0, max = 1, def = 1, title = "damper_length" } )
-
-tankTrackVars:Var( "suspensionTAngle", "Float", { min = -90, max = 90, def = 45, title = "beam_angle" } )
-
-tankTrackVars:Var( "suspensionTSize", "Float", { min = 0, max = 250, def = 4, title = "beam_thickness" } )
-
-tankTrackVars:Var( "suspensionTBeam", "Float", { min = 0, max = 250, def = 20, title = "beam_length" } )
-
-tankTrackVars:Var( "suspensionTAxle", "Float", { min = 0, max = 250, def = 8, title = "axle_length" } )
-
-tankTrackVars:Var( "suspensionTAxleRad", "Float", { min = 0, max = 1, def = 1, title = "axle_radius" } )
-
-tankTrackVars:Var( "suspensionTConn", "Float", { min = 0, max = 250, def = 9, title = "conn_length" } )
-
-tankTrackVars:Var( "suspensionTConnRad", "Float", { min = 0, max = 1, def = 1, title = "conn_radius" } )
-
-
-tankTrackVars:Category( "Track" )
-
-tankTrackVars:Var( "trackEnable", "Bool", { def = 1, title = "enabled" } )
-
-tankTrackVars:Var( "trackColor", "Color", { def = "", title = "color" } )
-
-tankTrackVars:Var( "trackMaterial", "Combo", { def = "generic", title = "material" } )
-
-tankTrackVars:Var( "trackRes", "Int", { min = 1, max = 8, def = 2, title = "resolution" } )
-
-
-tankTrackVars:SubCategory( "shape" )
-
-tankTrackVars:Var( "trackTension", "Float", { min = 0, max = 1, def = 0.5, title = "tension" } )
-
-tankTrackVars:Var( "trackWidth", "Float", { min = 0, max = 250, def = 24, title = "width" } )
-
-tankTrackVars:Var( "trackHeight", "Float", { min = 0, max = 250, def = 3, title = "height" } )
-
-tankTrackVars:Var( "trackGuideY", "Float", { min = -1, max = 1, def = 0, title = "guide offset" } )
-
-tankTrackVars:Var( "trackGrouser", "Float", { min = 0, max = 1, def = 0, title = "grouser length" } )
-
-
-tankTrackVars:Category( "Wheels" )
-
-tankTrackVars:Var( "wheelColor", "Color", { def = "", title = "color" } )
-
-tankTrackVars:Var( "wheelMaterial", "Field", { max = 5, title = "material" } )
-
-tankTrackVars:Var( "wheelModel", "String", { def = "models/sprops/trans/miscwheels/tank15.mdl", title = "model" } )
-
-tankTrackVars:Var( "wheelBodygroup", "String", { def = "", title = "bodygroup" } )
-
-tankTrackVars:Var( "wheelRadius", "Float", { min = 0, max = 250, def = 15, title = "radius" } )
-
-tankTrackVars:Var( "wheelWidth", "Float", { min = 0, max = 250, def = 10, title = "width" } )
-
-tankTrackVars:Var( "wheelCount", "Int", { container = "wheelTable", min = 2, max = 18, def = 7 } )
-
-
-tankTrackVars:Category( nil )
-
-tankTrackVars:Obj( "wheelCount", "whnOffsetX", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
-
-tankTrackVars:Obj( "wheelCount", "whnOffsetY", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
-
-tankTrackVars:Obj( "wheelCount", "whnOffsetZ", "Float", { min = -1000, max = 1000, def = 0, title = "z offset" } )
-
-
-tankTrackVars:Obj( "wheelCount", "whnSuspension", "Bool", { def = 1, title = "suspension", highlight = true } )
-
-tankTrackVars:Category( "whnSuspension" )
-
-tankTrackVars:Obj( "wheelCount", "whnTraceZ", "Float", { min = 0, max = 1, def = 0, title = "height" } )
-
---tankTrackVars:Obj( "wheelCount", "whnTAngle", "Float", { min = -1, max = 1, def = 0, title = "beam_angle" } )
-
-
-tankTrackVars:Category( nil )
-
-tankTrackVars:Obj( "wheelCount", "whnOverride", "Bool", { def = 0, title = "visual", highlight = true, inheritmenu = true } )
-
-tankTrackVars:Category( "whnOverride" )
-
-tankTrackVars:Obj( "wheelCount", "whnColor", "Color", { def = "", title = "color", inherit = "wheelColor" } )
-
-tankTrackVars:Obj( "wheelCount", "whnMaterial", "Field", { max = 5, title = "material", inherit = "wheelMaterial" } )
-
-tankTrackVars:Obj( "wheelCount", "whnModel", "String", { def = "", title = "model", inherit = "wheelModel" } )
-
-tankTrackVars:Obj( "wheelCount", "whnBodygroup", "String", { def = "", title = "bodygroup", inherit = "wheelBodygroup" } )
-
-tankTrackVars:Obj( "wheelCount", "whnRadius", "Float", { min = 0, max = 250, def = 0, title = "radius", inherit = "wheelRadius" } )
-
-tankTrackVars:Obj( "wheelCount", "whnWidth", "Float", { min = 0, max = 250, def = 0, title = "width", inherit = "wheelWidth" } )
-
-
-
-tankTrackVars:Category( "Rollers" )
-
-tankTrackVars:Var( "rollerColor", "Color", { def = "", title = "color" } )
-
-tankTrackVars:Var( "rollerMaterial", "Field", { max = 5, title = "material" } )
-
-tankTrackVars:Var( "rollerModel", "String", { def = "models/sprops/trans/miscwheels/tank15.mdl", title = "model" } )
-
-tankTrackVars:Var( "rollerBodygroup", "String", { def = "", title = "bodygroup" } )
-
-tankTrackVars:Var( "rollerRadius", "Float", { min = 0, max = 250, def = 7.5, title = "radius" } )
-
-tankTrackVars:Var( "rollerWidth", "Float", { min = 0, max = 250, def = 10, title = "width" } )
-
-tankTrackVars:Var( "rollerOffsetZ", "Float", { min = -1000, max = 1000, def = 0, title = "z offset" } )
-
-tankTrackVars:Var( "rollerLocalZ", "Bool", { def = 0, title = "z local" } )
-
-tankTrackVars:Var( "rollerCount", "Int", { container = "rollerTable", min = 0, max = 18, def = 2 } )
-
-
-tankTrackVars:Category( nil )
-
-tankTrackVars:Obj( "rollerCount", "ronOffsetX", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
-
-tankTrackVars:Obj( "rollerCount", "ronOffsetY", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
-
-tankTrackVars:Obj( "rollerCount", "ronOffsetZ", "Float", { min = -1000, max = 1000, def = 0, title = "z offset" } )
-
-tankTrackVars:Obj( "rollerCount", "ronOverride", "Bool", { def = 0, title = "visual", highlight = true } )
-
-
-tankTrackVars:Category( "ronOverride" )
-
-tankTrackVars:Obj( "rollerCount", "ronColor", "Color", { def = "", title = "color" } )
-
-tankTrackVars:Obj( "rollerCount", "ronMaterial", "Field", { max = 5, title = "material" } )
-
-tankTrackVars:Obj( "rollerCount", "ronModel", "String", { def = "", title = "model" } )
-
-tankTrackVars:Obj( "rollerCount", "ronBodygroup", "String", { def = "", title = "bodygroup" } )
-
-tankTrackVars:Obj( "rollerCount", "ronRadius", "Float", { min = 0, max = 250, def = 0, title = "radius" } )
-
-tankTrackVars:Obj( "rollerCount", "ronWidth", "Float", { min = 0, max = 250, def = 0, title = "width" } )
-
-
-if CLIENT then -- editor hacks
-    local function submatTitle( i )
-        if i == 1 then return "base" else return string.format( "sub [%d]", i ) end
+netvar:category( "System" )
+netvar:var( "systemOffsetX", "Float", { min = -2000, max = 2000, def = 0, title = "x offset" } )
+netvar:var( "systemOffsetY", "Float", { min = -2000, max = 2000, def = 0, title = "y offset" } )
+netvar:var( "systemOffsetZ", "Float", { min = -2000, max = 2000, def = 0, title = "z offset" } )
+netvar:var( "systemEffScale", "Float", { min = 0, max = 1, def = 0.5, title = "ground fx scale" } )
+netvar:var( "systemMirror", "Bool", { def = 1, title = "mirror" } )
+
+netvar:category( "Suspension" )
+netvar:var( "suspensionType", "Combo", { values = { classic = 1, torsion = 2, bogie = 3 }, def = "classic", title = "type" } )
+netvar:var( "suspensionX", "Float", { min = 0, max = 4000, def = 200, title = "length" } )
+netvar:var( "suspensionY", "Float", { min = 0, max = 4000, def = 100, title = "width" } )
+netvar:var( "suspensionZ", "Float", { min = 0, max = 4000, def = 40, title = "height" } )
+netvar:var( "suspensionInterleave", "Float", { min = -1, max = 1, def = 0, title = "interleave" } )
+netvar:var( "suspensionPairGap", "Float", { min = -1, max = 1, def = 0, title = "paired spacing" } )
+
+netvar:subcategory( "model" )
+netvar:var( "suspensionColor", "Color", { def = "", title = "color" } )
+netvar:var( "suspensionMaterial", "String", { def = "", title = "material" } )
+netvar:var( "suspensionTDamp", "Int", { min = 0, max = 3, def = 0, title = "damper_count" } )
+netvar:var( "suspensionTDampZ", "Float", { min = 0, max = 1, def = 1, title = "damper_length" } )
+netvar:var( "suspensionTAngle", "Float", { min = -90, max = 90, def = 45, title = "beam_angle" } )
+netvar:var( "suspensionTSize", "Float", { min = 0, max = 250, def = 4, title = "beam_thickness" } )
+netvar:var( "suspensionTBeam", "Float", { min = 0, max = 250, def = 20, title = "beam_length" } )
+netvar:var( "suspensionTAxle", "Float", { min = 0, max = 250, def = 8, title = "axle_length" } )
+netvar:var( "suspensionTAxleRad", "Float", { min = 0, max = 1, def = 1, title = "axle_radius" } )
+netvar:var( "suspensionTConn", "Float", { min = 0, max = 250, def = 9, title = "conn_length" } )
+netvar:var( "suspensionTConnRad", "Float", { min = 0, max = 1, def = 1, title = "conn_radius" } )
+
+netvar:category( "Track" )
+netvar:var( "trackEnable", "Bool", { def = 1, title = "enabled" } )
+netvar:var( "trackColor", "Color", { def = "", title = "color" } )
+netvar:var( "trackMaterial", "Combo", { def = "generic", title = "material" } )
+netvar:var( "trackRes", "Int", { min = 1, max = 8, def = 2, title = "resolution" } )
+
+netvar:subcategory( "shape" )
+netvar:var( "trackTension", "Float", { min = 0, max = 1, def = 0.5, title = "tension" } )
+netvar:var( "trackWidth", "Float", { min = 0, max = 250, def = 24, title = "width" } )
+netvar:var( "trackHeight", "Float", { min = 0, max = 250, def = 3, title = "height" } )
+netvar:var( "trackGuideY", "Float", { min = -1, max = 1, def = 0, title = "guide offset" } )
+netvar:var( "trackGrouser", "Float", { min = 0, max = 1, def = 0, title = "grouser length" } )
+
+netvar:category( "Wheels" )
+netvar:var( "wheelColor", "Color", { def = "", title = "color" } )
+netvar:var( "wheelMaterial", "Array", { count = 5, title = "material", label = function( i ) return i == 1 and "base" or string.format( "submaterial %d", i - 1 ) end } )
+netvar:var( "wheelModel", "String", { def = "models/sprops/trans/miscwheels/tank15.mdl", title = "model" } )
+netvar:var( "wheelBodygroup", "String", { def = "", title = "bodygroup" } )
+netvar:var( "wheelRadius", "Float", { min = 0, max = 250, def = 15, title = "radius" } )
+netvar:var( "wheelWidth", "Float", { min = 0, max = 250, def = 10, title = "width" } )
+netvar:var( "wheelCount", "Instance", { min = 2, max = 18, def = 7, title = "count", label = function( i ) return string.format( "wheel [%s]", i == 1 and "first" or i == 2 and "last" or i ) end } )
+
+netvar:category( nil )
+netvar:subvar( "whnOffsetX", "wheelCount", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
+netvar:subvar( "whnOffsetY", "wheelCount", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
+netvar:subvar( "whnOffsetZ", "wheelCount", "Float", { min = -2000, max = 2000, def = 0, title = "z offset" } )
+netvar:subvar( "whnSuspension", "wheelCount", "Bool", { def = 1, title = "suspension" } )
+
+netvar:category( "whnSuspension" )
+netvar:subvar( "whnTraceZ", "wheelCount", "Float", { min = 0, max = 1, def = 0, title = "height" } )
+
+netvar:category( nil )
+netvar:subvar( "whnOverride", "wheelCount", "Bool", { def = 0, title = "visual",
+    inherit = { whnColor = "wheelColor", whnMaterial = "wheelMaterial", whnModel = "wheelModel", whnBodygroup = "wheelBodygroup", whnRadius = "wheelRadius", whnWidth = "wheelWidth" }
+} )
+
+netvar:category( "whnOverride" )
+netvar:subvar( "whnColor", "wheelCount", "Color", { def = "", title = "color", inherit = "wheelColor" } )
+netvar:subvar( "whnMaterial", "wheelCount", "Array", { count = 5, title = "material", label = function( i ) return i == 1 and "base" or string.format( "submaterial %d", i - 1 ) end, inherit = "wheelMaterial" } )
+netvar:subvar( "whnModel", "wheelCount", "String", { def = "", title = "model", inherit = "wheelModel" } )
+netvar:subvar( "whnBodygroup", "wheelCount", "String", { def = "", title = "bodygroup", inherit = "wheelBodygroup" } )
+netvar:subvar( "whnRadius", "wheelCount", "Float", { min = 0, max = 250, def = 0, title = "radius", inherit = "wheelRadius" } )
+netvar:subvar( "whnWidth", "wheelCount", "Float", { min = 0, max = 250, def = 0, title = "width", inherit = "wheelWidth" } )
+
+netvar:category( "Rollers" )
+netvar:var( "rollerColor", "Color", { def = "", title = "color" } )
+netvar:var( "rollerMaterial", "Array", { count = 5, title = "material", label = function( i ) return i == 1 and "base" or string.format( "submaterial %d", i - 1 ) end } )
+netvar:var( "rollerModel", "String", { def = "models/sprops/trans/miscwheels/tank15.mdl", title = "model" } )
+netvar:var( "rollerBodygroup", "String", { def = "", title = "bodygroup" } )
+netvar:var( "rollerRadius", "Float", { min = 0, max = 250, def = 7.5, title = "radius" } )
+netvar:var( "rollerWidth", "Float", { min = 0, max = 250, def = 10, title = "width" } )
+netvar:var( "rollerOffsetZ", "Float", { min = -1000, max = 1000, def = 0, title = "z offset" } )
+netvar:var( "rollerLocalZ", "Bool", { def = 0, title = "z local" } )
+netvar:var( "rollerCount", "Instance", { min = 0, max = 18, def = 2, title = "count", label = "roller" } )
+
+netvar:category( nil )
+netvar:subvar( "ronOffsetX", "rollerCount", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
+netvar:subvar( "ronOffsetY", "rollerCount", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
+netvar:subvar( "ronOffsetZ", "rollerCount", "Float", { min = -2000, max = 2000, def = 0, title = "z offset" } )
+netvar:subvar( "ronOverride", "rollerCount", "Bool", { def = 0, title = "visual",
+    inherit = { ronColor = "rollerColor", ronMaterial = "rollerMaterial", ronModel = "rollerModel", ronBodygroup = "rollerBodygroup", ronRadius = "rollerRadius", ronWidth = "rollerWidth" }
+} )
+
+netvar:category( "ronOverride" )
+netvar:subvar( "ronColor", "rollerCount", "Color", { def = "", title = "color", inherit = "rollerColor" } )
+netvar:subvar( "ronMaterial", "rollerCount", "Array", { count = 5, title = "material", label = function( i ) return i == 1 and "base" or string.format( "submaterial %d", i - 1 ) end, inherit = "rollerMaterial" } )
+netvar:subvar( "ronModel", "rollerCount", "String", { def = "", title = "model", inherit = "rollerModel" } )
+netvar:subvar( "ronBodygroup", "rollerCount", "String", { def = "", title = "bodygroup", inherit = "rollerBodygroup" } )
+netvar:subvar( "ronRadius", "rollerCount", "Float", { min = 0, max = 250, def = 0, title = "radius", inherit = "rollerRadius" } )
+netvar:subvar( "ronWidth", "rollerCount", "Float", { min = 0, max = 250, def = 0, title = "width", inherit = "rollerWidth" } )
+
+
+if CLIENT then
+    netvar:get( "trackMaterial" ).data.values = tanktracktool.autotracks.textureList()
+    netvar:get( "trackMaterial" ).data.images = "tanktracktool/autotracks/gui/%s"
+
+    netvar:get( "trackEnable" ).data.hook = function( inner, val )
+        local editor = inner.m_Editor
+        local enabled = tobool( val )
+
+        editor.Variables.trackColor:SetEnabled( enabled )
+        editor.Variables.trackMaterial:SetEnabled( enabled )
+        editor.Variables.trackRes:SetEnabled( enabled )
+
+        if not enabled then
+            editor.Categories.Track.Categories.shape:SetExpanded( false, true )
+        end
+        editor.Categories.Track.Categories.shape:SetEnabled( enabled )
+    end
+    netvar:get( "suspensionType" ).data.hook = function( inner, val )
+        local editor = inner.m_Editor
+        if val == "classic" then
+            editor.Categories.Suspension.Categories.model:SetExpanded( false, true )
+            editor.Categories.Suspension.Categories.model:SetEnabled( false )
+            editor.Variables.suspensionInterleave:SetEnabled( true )
+        else
+            editor.Categories.Suspension.Categories.model:SetEnabled( true )
+            editor.Variables.suspensionInterleave:SetEnabled( val == "torsion" )
+        end
     end
 
-    tankTrackVars:GetVar( "wheelMaterial" ).edit.getTitle = submatTitle
-    tankTrackVars:GetVar( "rollerMaterial" ).edit.getTitle = submatTitle
-    tankTrackVars:GetVar( "whnMaterial" ).edit.getTitle = submatTitle
-    tankTrackVars:GetVar( "ronMaterial" ).edit.getTitle = submatTitle
-
-
-    tankTrackVars:GetVar( "wheelCount" ).edit.getTitle = function( i )
-        if i == 1 then return "wheel [first]" elseif i == 2 then return "wheel [last]" else return string.format( "wheel [%d]", i - 1 ) end
+    local function hide( inner, val )
+        local obj = inner.Instances
+        for i = 1, #obj do
+            local enabled = i <= val
+            if not enabled then
+                obj[i]:SetExpanded( false, true )
+            end
+            obj[i]:SetEnabled( enabled )
+        end
     end
-    tankTrackVars:GetVar( "rollerCount" ).edit.getTitle = function( i )
-        return string.format( "roller [%d]", i )
-    end
+    netvar:get( "wheelCount" ).data.hook = hide
+    netvar:get( "rollerCount" ).data.hook = hide
 
-
-    local function SetEnabled( self, oldvalue, newvalue )
-        self:SetEnabled( newvalue ~= 0 )
-    end
-    local function SetDisabled( self, oldvalue, newvalue )
-        self:SetEnabled( newvalue == 0 )
-    end
-
-
-    local callbacks = { suspensionType = function( self, oldvalue, newvalue ) self:SetEnabled( newvalue ~= "classic" ) end }
-    for k, v in pairs( { "suspensionColor", "suspensionMaterial", "suspensionTSize", "suspensionTBeam",
-        "suspensionTAxle", "suspensionTConn", "suspensionTAngle", "suspensionTAxleRad", "suspensionTConnRad", "suspensionTDamp", "suspensionTDampZ" } ) do
-        tankTrackVars:GetVar( v ).edit.callbacks = callbacks
-    end
-    tankTrackVars:GetVar( "suspensionInterleave" ).edit.callbacks = { suspensionType = function( self, oldvalue, newvalue ) self:SetEnabled( newvalue ~= "bogie" ) end }
-
-
-    local callbacks = { trackEnable = SetEnabled }
-    for k, v in pairs( { "trackColor", "trackMaterial", "trackRes", "trackWidth", "trackHeight", "trackTension" } ) do
-        tankTrackVars:GetVar( v ).edit.callbacks = callbacks
+    local function hide( inner, val )
+        local enabled = tobool( val )
+        for k, v in pairs( inner:GetRow().Categories ) do
+            v:SetEnabled( enabled )
+        end
     end
 
-
-    tankTrackVars:GetVar( "whnTraceZ" ).edit.callbacks = { whnSuspension = SetEnabled }
-    tankTrackVars:GetVar( "whnOffsetZ" ).edit.callbacks = { whnSuspension = SetDisabled }
-
-    -- tankTrackVars:GetVar( "whnTAngle" ).edit.callbacks = {
-    --  whnSuspension = function( self, oldvalue, newvalue )
-    --      self.b1 = newvalue ~= 0
-    --      self:SetEnabled( ( self.b1 and self.b2 ) or false )
-    --  end,
-    --  suspensionType = function( self, oldvalue, newvalue )
-    --      self.b2 = newvalue ~= "classic"
-    --      self:SetEnabled( ( self.b1 and self.b2 ) or false )
-    --  end,
-    -- }
-
-
-    local callbacks = { whnOverride = SetEnabled }
-    for k, v in pairs( { "whnColor", "whnMaterial", "whnModel", "whnBodygroup", "whnRadius", "whnWidth" } ) do
-        tankTrackVars:GetVar( v ).edit.callbacks = callbacks
+    netvar:get( "whnOverride" ).data.hook = hide
+    netvar:get( "ronOverride" ).data.hook = hide
+    netvar:get( "whnSuspension" ).data.hook = function( inner, val )
+        local enabled = tobool( val )
+        inner:GetRow():GetParentNode().Categories.whnOffsetZ:SetEnabled( not enabled )
+        hide( inner, val )
     end
-
-    local callbacks = { ronOverride = SetEnabled }
-    for k, v in pairs( { "ronColor", "ronMaterial", "ronModel", "ronBodygroup", "ronRadius", "ronWidth" } ) do
-        tankTrackVars:GetVar( v ).edit.callbacks = callbacks
-    end
-
-    local edit = tankTrackVars:GetVar( "trackMaterial" ).edit
-    edit.values = tttlib.tracks_textureList()
-    edit.images = "tanktracktool/autotracks/gui/%s"
-
-
-    tankTrackVars:SetHelp( "suspensionInterleave", "percentage of track width" )
-    tankTrackVars:SetHelp( "suspensionTDampZ", "percentage of suspension height" )
-    tankTrackVars:SetHelp( "suspensionTAxleRad", "percentage of beam thickness" )
-    tankTrackVars:SetHelp( "suspensionTConnRad", "percentage of beam thickness" )
-
 end

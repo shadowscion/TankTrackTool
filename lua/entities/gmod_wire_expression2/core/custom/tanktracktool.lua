@@ -39,7 +39,7 @@ local function makeEntity( self, class, keep, pos, ang, model )
     if not keep then
         self.data.tanktracks[ent] = true
 
-        ent:CallOnRemove( "e2_ttrmv", function( e )
+        ent:CallOnRemove( "tanktracktool_e2_onremove", function( e )
             self.data.spawnedProps[e] = nil
         end )
 
@@ -59,157 +59,205 @@ end
 
 __e2setcost( 100 )
 
-e2function entity tanktracksCreateAuto( number keep, string model, vector pos, angle ang )
-    return makeEntity( self, "sent_tanktracks_auto", keep ~= 0, pos, Angle( ang[1], ang[2], ang[3] ), model )
-end
-
-e2function entity tanktracksCreateLegacy( number keep, string model, vector pos, angle ang )
-    return makeEntity( self, "sent_tanktracks_legacy", keep ~= 0, pos, Angle( ang[1], ang[2], ang[3] ), model )
-end
-
-
-//
-local classes = {
+local validClasses = {
     sent_tanktracks_auto = true,
     sent_tanktracks_legacy = true,
- }
+    sent_point_beam = true,
+    sent_suspension_shock = true,
+    sent_suspension_spring = true,
+    --sent_suspension_mstrut = true,
+}
 
-local function checkvalid( context, self )
-    if not IsValid( self ) then return false end
-    if not E2Lib.isOwner( context, self ) or not classes[self:GetClass()] then
-        return false
-    end
-    return true
+local isOwner = E2Lib.isOwner
+local canEdit = tanktracktool.netvar.canEdit
+local canLink = tanktracktool.netvar.canLink
+local setVar = tanktracktool.netvar.setVar
+
+e2function entity tanktracktoolCreate( number keep, string class, string model, vector pos, angle ang )
+    local class = string.lower( class )
+    local model = string.lower( model )
+    if not validClasses[class] then return end
+    return makeEntity( self, class, keep ~= 0, pos, Angle( ang[1], ang[2], ang[3] ), model )
 end
 
-local function setvalue( context, self, name, instance, value )
-    if not checkvalid( context, self ) then return end
-    return self:SetValueNME( true, name, instance, value )
+__e2setcost( 50 )
+e2function void entity:tanktracktoolResetValues()
+    if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
+    if not canEdit( this, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
+
+    local entindex = this.netvar.entindex
+    local entities = this.netvar.entities
+
+    this:netvar_install()
+
+    this.netvar.entindex = entindex
+    this.netvar.entities = entities
 end
 
-local function getkeys( context, self )
-    if not checkvalid( context, self ) then return E2Lib.newE2Table() end
-
-    local ret = E2Lib.newE2Table()
-    local len = 0
-
-    for k, v in ipairs( self.NMEVars.n ) do
-        len = len + 1
-        ret.n[k] = v.name
-        ret.ntypes[k] = "s"
-    end
-
-    ret.size = len
-    context.prf = context.prf + len * 0.333
-
-    return ret
+e2function void entity:tanktracktoolCopyValues( entity other )
+    if not isOwner( self, this ) or not isOwner( self, other ) then self:throw( "You do not own this entity!", nil ) end
+    if not canEdit( this, self.player ) or not canEdit( other, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
+    if this:GetClass() ~= other:GetClass() then self:throw( "Entities must be the same class!", nil ) end
+    this:netvar_copy( self.player, other )
 end
 
-local t1 = { bool = "bool", int = "number", float = "number", string = "string", combo = "string", color = "string", field = "array" }
-local t2 = { bool = "boolindex", int = "numberindex", float = "numberindex", string = "stringindex", combo = "stringindex", color = "stringindex", field = "arrayindex" }
+__e2setcost( 10 )
+e2function void entity:tanktracktoolSetValue( string key, ... )
+    if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
+    if not canEdit( this, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
+    if not this.netvar.variables:get( key ) then self:throw( string.format( "Variable '%s' doesn't exist on entity!", key ), nil ) end
 
-__e2setcost( 5 )
+    local count = select( "#", ... )
 
-e2function string entity:tanktracksGetType( string name )
-    if not checkvalid( self, this ) then return "" end
-    local var = this.NMEVars.n[this.NMEVars.s[name]]
-    return var and ( var.container and t2 or t1 )[var.type] or ""
-end
+    if count == 0 then self:throw( "You must provide a value!", nil ) end
 
-e2function table entity:tanktracksGetKeys()
-    return getkeys( self, this )
-end
-
-e2function number entity:tanktracksSetValue( string name, ... )
-    if select( "#", ... ) == 0 then return 0 end
-    return setvalue( self, this, name, nil, unpack( { ... } ) ) and 1 or 0
-end
-
-e2function number entity:tanktracksSetValueIndex( string name, number index, ... )
-    if select( "#", ... ) == 0 then return 0 end
-    return setvalue( self, this, name, index, unpack( { ... } ) ) and 1 or 0
-end
-
-e2function array entity:tanktracksGetLinks()
-    if not IsValid( this ) or not E2Lib.isOwner( self, this ) or this:GetClass() ~= "sent_tanktracks_legacy" then return {} end
-    return this.ttdata_links or {}
-end
-
-__e2setcost( 100 )
-
-e2function void entity:tanktracksReset()
-    if not checkvalid( self, this ) then return end
-    this:ResetNME( true )
-end
-
-local antispam = {}
-
-e2function void entity:tanktracksSetLinks( entity chassis, array wheels, array rollers )
-    if not IsValid( this ) or not E2Lib.isOwner( self, this ) or this:GetClass() ~= "sent_tanktracks_legacy" then return end
-
-    if not E2Lib.isOwner( self, chassis ) then return end
-
-    local time = CurTime()
-    if antispam[this] and ( antispam[this] == time or time - antispam[this] < 5 ) then
+    if count == 1 then
+        local value = unpack( { ... } )
+        setVar( this, key, nil, value, true )
         return
     end
-    antispam[this] = time
 
-    local m = chassis:GetWorldTransformMatrix()
-    if this:GetValueNME( "systemRotate" ) ~= 0 then
-        m:Rotate( Angle( 0, -90, 0 ) )
+    if count == 2 then
+        local index, value = unpack( { ... } )
+        if not isnumber( index ) then self:throw( "You must provide an index!", nil ) end
+        setVar( this, key, index, value, true )
+        return
     end
+end
 
-    local right = m:GetRight()
-    local pos = m:GetTranslation()
-    local dot = 0
+--[[
+    hardcoded but easiest
+]]
+local quicklink = {}
 
-    local tbl = {}
-
-    local safe = 0
-    for k, v in ipairs( wheels ) do
-        if IsValid( v ) and type( v ) == "Entity" and E2Lib.isOwner( self, v ) then
-            dot = dot + ( right:Dot( ( v:GetPos() - pos ):GetNormal() ) > 0 and 1 or -1 )
-            tbl[#tbl + 1] = v
-            v.Roller = nil
-            safe = safe + 1
+quicklink.sent_tanktracks_legacy = {
+    get = function()
+        return { "Chassis (entity)", "Wheel (array)", "Roller (array)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Chassis or not isentity( E2Table.s.Chassis ) then
+            self:throw( "Links table must contain an entity with key 'Chassis'!", nil )
+            return
         end
-        if safe > 32 then break end
-    end
-
-    local safe = 0
-    for k, v in ipairs( rollers ) do
-        if IsValid( v ) and type( v ) == "Entity" and E2Lib.isOwner( self, v ) then
-            dot = dot + ( right:Dot( ( v:GetPos() - pos ):GetNormal() ) > 0 and 1 or -1 )
-            tbl[#tbl + 1] = v
-            v.Roller = true
-            safe = safe + 1
+        if not E2Table.s.Wheel or E2Table.stypes.Wheel ~= "r" then
+            self:throw( "Links table must contain an array with key 'Wheel'!", nil )
+            return
         end
-        if safe > 32 then break end
-    end
-
-    if math.abs( dot ) ~= #tbl then
-        error( "All linked wheels must be parallel to the chassis!" )
-    end
-
-    local sort_pos = pos + m:GetForward() * 10000
-
-    table.sort( tbl, function( a, b )
-        local bool_this = a.Roller
-        local bool_that = b.Roller
-
-        if bool_this ~= bool_that then
-            return bool_that and not bool_this
+        if not E2Table.s.Roller or E2Table.stypes.Roller ~= "r" then
+            self:throw( "Links table must contain an array with key 'Roller'!", nil )
+            return
         end
 
-        if bool_this then
-            return a:GetPos():Distance( sort_pos ) > b:GetPos():Distance( sort_pos )
-        else
-            return a:GetPos():Distance( sort_pos ) < b:GetPos():Distance( sort_pos )
+        local t = { Chassis = E2Table.s.Chassis, Wheel = {}, Roller = {} }
+
+        for k, v in SortedPairs( E2Table.s.Wheel ) do
+            if not isentity( v ) then
+                self:throw( "'Wheel' array must contain entities only!", nil )
+                return
+            else
+                table.insert( t.Wheel, v )
+            end
         end
-    end )
+        for k, v in SortedPairs( E2Table.s.Roller ) do
+            if not isentity( v ) then
+                self:throw( "'Roller' array must contain entities only!", nil )
+                return
+            else
+                table.insert( t.Roller, v )
+            end
+        end
 
-    table.insert( tbl, 1, chassis )
+        return this:netvar_setLinks( t, self.player )
+    end
+}
 
-    this:SetControllerLinks( tbl )
+quicklink.sent_point_beam = {
+    get = function()
+        return { "Entity1 (entity)", "Entity2 (entity)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Entity1 or not isentity( E2Table.s.Entity1 ) then
+            self:throw( "Links table must contain an entity with key 'Entity1'!", nil )
+            return
+        end
+        if not E2Table.s.Entity2 or not isentity( E2Table.s.Entity2 ) then
+            self:throw( "Links table must contain an entity with key 'Entity2'!", nil )
+            return
+        end
+        return this:netvar_setLinks( { Entity1 = E2Table.s.Entity1, Entity2 = E2Table.s.Entity2 }, self.player )
+    end
+}
+
+quicklink.sent_suspension_shock = {
+    get = function()
+        return { "Entity1 (entity)", "Entity2 (entity)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Entity1 or not isentity( E2Table.s.Entity1 ) then
+            self:throw( "Links table must contain an entity with key 'Entity1'!", nil )
+            return
+        end
+        if not E2Table.s.Entity2 or not isentity( E2Table.s.Entity2 ) then
+            self:throw( "Links table must contain an entity with key 'Entity2'!", nil )
+            return
+        end
+        return this:netvar_setLinks( { Entity1 = E2Table.s.Entity1, Entity2 = E2Table.s.Entity2 }, self.player )
+    end
+}
+
+quicklink.sent_suspension_spring = {
+    get = function()
+        return { "Entity1 (entity)", "Entity2 (entity)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Entity1 or not isentity( E2Table.s.Entity1 ) then
+            self:throw( "Links table must contain an entity with key 'Entity1'!", nil )
+            return
+        end
+        if not E2Table.s.Entity2 or not isentity( E2Table.s.Entity2 ) then
+            self:throw( "Links table must contain an entity with key 'Entity2'!", nil )
+            return
+        end
+        return this:netvar_setLinks( { Entity1 = E2Table.s.Entity1, Entity2 = E2Table.s.Entity2 }, self.player )
+    end
+}
+
+--[[
+quicklink.sent_suspension_mstrut = {
+    get = function()
+        return { "Chassis (entity)", "LeftWheel (entity)", "RightWheel (entity)" }
+    end,
+    set = function( self, this, E2Table )
+        if not E2Table.s.Chassis or not isentity( E2Table.s.Chassis ) then
+            self:throw( "Links table must contain an entity with key 'Chassis'!", nil )
+            return
+        end
+        if not E2Table.s.LeftWheel or not isentity( E2Table.s.LeftWheel ) then
+            self:throw( "Links table must contain an entity with key 'LeftWheel'!", nil )
+            return
+        end
+        if not E2Table.s.RightWheel or not isentity( E2Table.s.RightWheel ) then
+            self:throw( "Links table must contain an entity with key 'RightWheel'!", nil )
+            return
+        end
+        return this:netvar_setLinks( { Chassis = E2Table.s.Chassis, LeftWheel = E2Table.s.LeftWheel, RightWheel = E2Table.s.RightWheel }, self.player )
+    end
+}
+]]
+
+__e2setcost( 100 )
+e2function void entity:tanktracktoolSetLinks( table links )
+    if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
+    if not canEdit( this, self.player ) or not this.netvar_setLinks then self:throw( "You cannot link this entity!", nil ) end
+    local class = this:GetClass()
+    if not quicklink[class] then self:throw( "You cannot link this entity!", nil ) end
+    quicklink[class].set( self, this, links )
+end
+
+__e2setcost( 10 )
+e2function array entity:tanktracktoolGetLinkNames()
+    if not this.netvar_setLinks then self:throw( "You cannot link this entity!", nil ) end
+    local class = this:GetClass()
+    if not quicklink[class] then self:throw( "You cannot link this entity!", nil ) end
+    return quicklink[class].get( this )
 end
