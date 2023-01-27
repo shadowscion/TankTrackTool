@@ -28,7 +28,7 @@ inputs.RightBrake = function( self, ply, value )
 end
 inputs.AxisEntity = function( self, ply, value )
     if ply and not tanktracktool.netvar.canLink( value, ply ) then value = nil end
-    self:SetNW2Entity( "netwire_axisEntity", ivalue )
+    self:SetNW2Entity( "netwire_axisEntity", value )
 end
 
 function ENT:TriggerInput( name, value )
