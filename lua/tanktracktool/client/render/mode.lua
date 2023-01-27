@@ -571,7 +571,12 @@ function tanktracktool.render.addshock( mode, controller )
     self.info.retmat = ""
     self.info.covermat = ""
 
-    self.info.mdltip = "models/tanktracktool/suspension/shock_piston_tip1.mdl"
+    self.info.mdltop = "models/tanktracktool/shock/top1.mdl"
+    self.info.mdlbot = "models/tanktracktool/shock/bottom1.mdl"
+    self.info.mdlcyl = "models/tanktracktool/shock/cylinder1.mdl"
+    self.info.mdlret = "models/tanktracktool/shock/retainer1.mdl"
+    self.info.mdltip = "models/tanktracktool/shock/piston_tip1.mdl"
+    self.info.mdlcov = "models/tanktracktool/shock/cover1.mdl"
 
     function self:setnodraw( l, r )
         for k, v in pairs( self.parts ) do v:setnodraw( l, r ) end
@@ -597,7 +602,7 @@ function tanktracktool.render.addshock( mode, controller )
 
         if self.info.type == "covered" then
             self.parts.cover = mode:addPart( controller, "shock_cover" )
-            self.parts.cover:setmodel( "models/tanktracktool/suspension/shock_cover1.mdl" )
+            self.parts.cover:setmodel( self.info.mdlcov )
             self.parts.cover.scale_v = Vector( self.info.scale, self.info.scale, self.info.scale )
             self.parts.cover.scale_l = Matrix()
             self.parts.cover.scale_r = Matrix()
@@ -610,7 +615,7 @@ function tanktracktool.render.addshock( mode, controller )
         else
             if self.info.type ~= "spring" then
                 self.parts.rod = mode:addPart( controller, "shock_rod" )
-                self.parts.rod:setmodel( "models/tanktracktool/suspension/shock_piston_rod.mdl" )
+                self.parts.rod:setmodel( "models/tanktracktool/shock/piston_rod.mdl" )
                 self.parts.rod.le_poslocal.x = 1.5 * self.info.scale
                 self.parts.rod.ri_poslocal.x = 1.5 * self.info.scale
                 self.parts.rod.scale_v = Vector( self.info.scale, self.info.scale, self.info.scale )
@@ -645,7 +650,7 @@ function tanktracktool.render.addshock( mode, controller )
         end
 
         self.parts.top = mode:addPart( controller, "shock_top" )
-        self.parts.top:setmodel( "models/tanktracktool/suspension/shock_top1.mdl" )
+        self.parts.top:setmodel( self.info.mdltop )
         self.parts.top.le_poslocal.x = 1.25 * self.info.scale
         self.parts.top.ri_poslocal.x = 1.25 * self.info.scale
         self.parts.top:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )
@@ -653,7 +658,7 @@ function tanktracktool.render.addshock( mode, controller )
         self.parts.top:setmaterial( self.info.topmat )
 
         self.parts.cylinder = mode:addPart( controller, "shock_cylinder" )
-        self.parts.cylinder:setmodel( "models/tanktracktool/suspension/shock_cylinder1.mdl" )
+        self.parts.cylinder:setmodel( self.info.mdlcyl )
         self.parts.cylinder.le_poslocal.x = 3 * self.info.scale
         self.parts.cylinder.ri_poslocal.x = 3 * self.info.scale
         self.parts.cylinder:setscale( Vector( self.info.shocklencyl / 12, self.info.scale, self.info.scale ) )
@@ -662,7 +667,7 @@ function tanktracktool.render.addshock( mode, controller )
 
         if self.info.type ~= "none" then
             self.parts.bot = mode:addPart( controller, "shock_bot" )
-            self.parts.bot:setmodel( "models/tanktracktool/suspension/shock_bottom1.mdl" )
+            self.parts.bot:setmodel( self.info.mdlbot )
             self.parts.bot.le_anglocal.p = 180
             self.parts.bot.ri_anglocal.p = 180
             self.parts.bot.le_poslocal.x = 3 * self.info.scale
@@ -672,7 +677,7 @@ function tanktracktool.render.addshock( mode, controller )
             self.parts.bot:setmaterial( self.info.botmat )
 
             self.parts.retainer = mode:addPart( controller, "shock_retainer" )
-            self.parts.retainer:setmodel( "models/tanktracktool/suspension/shock_retainer1.mdl" )
+            self.parts.retainer:setmodel( self.info.mdlret )
             self.parts.retainer.le_poslocal.x = ( self.info.shocklencyl - ( 0.312768 * self.info.scale + 0.175 * ( self.info.shocklencyl / 12 ) ) ) * self.info.shocklenret
             self.parts.retainer.ri_poslocal.x = ( self.info.shocklencyl - ( 0.312768 * self.info.scale + 0.175 * ( self.info.shocklencyl / 12 ) ) ) * self.info.shocklenret
             self.parts.retainer:setscale( Vector( self.info.scale, self.info.scale, self.info.scale ) )

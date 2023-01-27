@@ -197,43 +197,93 @@ end
 
 
 --[[
-    HUD stuff
+    HUD display
 ]]
+multitool.ui = {}
+
+multitool.ui.fonts = {}
+multitool.ui.fonts.small = "tanktracktool_stool0"
+multitool.ui.fonts.large = "tanktracktool_stool1"
+surface.CreateFont( multitool.ui.fonts.small, { font = "Consolas", size = 14, weight = 100, shadow = false } )
+surface.CreateFont( multitool.ui.fonts.large, { font = "Consolas", size = 20, weight = 100, shadow = false } )
+
+multitool.ui.colors = {}
 local function rgb( color, a )
     return Color( color.r / 255, color.g / 255, color.b / 255, a )
 end
+-- local function rgbCookieGet( key, def )
+--     return Color( cookie.GetNumber( key .. "_r", def.r ), cookie.GetNumber( key .. "_g", def.g ), cookie.GetNumber( key .. "_b", def.b ), cookie.GetNumber( key .. "_a", def.a ) )
+-- end
 
-local default_colors = {
-    text_class = Color( 255, 255, 0 ),
-    text_keyword = Color( 0, 255, 255 ),
-    text_input = Color( 0, 255, 0 ),
-    text_plain = Color( 255, 255, 255 ),
-}
+local default_colors = { text_class = Color( 255, 255, 0 ), text_keyword = Color( 0, 255, 255 ), text_input = Color( 0, 255, 0 ), text_plain = Color( 255, 255, 255 ) }
 
-multitool.ui = {}
-
-multitool.ui.colors = {}
 multitool.ui.colors.text_class = default_colors.text_class
 multitool.ui.colors.text_keyword = default_colors.text_keyword
 multitool.ui.colors.text_input = default_colors.text_input
 multitool.ui.colors.text_plain = default_colors.text_plain
 multitool.ui.colors.text_box = Color( 0, 0, 0, 200 )
-
 multitool.ui.colors.text_linked = Color( multitool.ui.colors.text_class.r, multitool.ui.colors.text_class.g, multitool.ui.colors.text_class.b, 200 )
 multitool.ui.colors.text_linked_box = Color( 0, 0, 0, 150 )
-
 multitool.ui.colors.ents_bbox = Color( 255, 255, 255, 66 )
 multitool.ui.colors.ents_possible = rgb( multitool.ui.colors.text_plain, 0.333 )
 multitool.ui.colors.ents_selected = rgb( multitool.ui.colors.text_keyword, 0.333 )
 multitool.ui.colors.ents_hovered = rgb( multitool.ui.colors.text_class, 0.333 )
 
-multitool.ui.fonts = {}
-multitool.ui.fonts.small = "tanktracktool_stool0"
-multitool.ui.fonts.large = "tanktracktool_stool1"
+--[[
+local function reskin()
+    local color = rgbCookieGet( "tttm_tc", default_colors.text_class )
+    multitool.ui.colors.text_class.r = color.r
+    multitool.ui.colors.text_class.g = color.g
+    multitool.ui.colors.text_class.b = color.b
+    multitool.ui.colors.text_class.a = color.a
 
-surface.CreateFont( multitool.ui.fonts.small, { font = "Consolas", size = 14, weight = 100, shadow = false } )
-surface.CreateFont( multitool.ui.fonts.large, { font = "Consolas", size = 20, weight = 100, shadow = false } )
+    local color = rgbCookieGet( "tttm_tw", default_colors.text_keyword )
+    multitool.ui.colors.text_keyword.r = color.r
+    multitool.ui.colors.text_keyword.g = color.g
+    multitool.ui.colors.text_keyword.b = color.b
+    multitool.ui.colors.text_keyword.a = color.a
 
+    local color = rgbCookieGet( "tttm_ti", default_colors.text_input )
+    multitool.ui.colors.text_input.r = color.r
+    multitool.ui.colors.text_input.g = color.g
+    multitool.ui.colors.text_input.b = color.b
+    multitool.ui.colors.text_input.a = color.a
+
+    local color = rgbCookieGet( "tttm_tp", default_colors.text_plain )
+    multitool.ui.colors.text_plain.r = color.r
+    multitool.ui.colors.text_plain.g = color.g
+    multitool.ui.colors.text_plain.b = color.b
+    multitool.ui.colors.text_plain.a = color.a
+
+    local color = multitool.ui.colors.text_class
+    multitool.ui.colors.text_linked.r = color.r
+    multitool.ui.colors.text_linked.g = color.g
+    multitool.ui.colors.text_linked.b = color.b
+
+    local color = rgb( multitool.ui.colors.text_plain, 0.333 )
+    multitool.ui.colors.ents_possible.r = color.r
+    multitool.ui.colors.ents_possible.g = color.g
+    multitool.ui.colors.ents_possible.b = color.b
+    multitool.ui.colors.ents_possible.a = color.a
+
+    local color = rgb( multitool.ui.colors.text_keyword, 0.333 )
+    multitool.ui.colors.ents_selected.r = color.r
+    multitool.ui.colors.ents_selected.g = color.g
+    multitool.ui.colors.ents_selected.b = color.b
+    multitool.ui.colors.ents_selected.a = color.a
+
+    local color = rgb( multitool.ui.colors.text_class, 0.333 )
+    multitool.ui.colors.ents_hovered.r = color.r
+    multitool.ui.colors.ents_hovered.g = color.g
+    multitool.ui.colors.ents_hovered.b = color.b
+    multitool.ui.colors.ents_hovered.a = color.a
+end
+]]
+
+
+--[[
+    HUD draw
+]]
 function multitool:renderModel( ent, color )
     if not IsValid( ent ) then return end
     if not IsValid( self.csent ) then
@@ -1041,7 +1091,7 @@ local function BuildPanel_EntitySettings( self )
     combo:AddChoice( "sent_point_beam", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_suspension_shock", nil, nil, "icon16/bullet_blue.png" )
     combo:AddChoice( "sent_suspension_spring", nil, nil, "icon16/bullet_blue.png" )
-    combo:AddChoice( "sent_suspension_mstrut", nil, nil, "icon16/bullet_blue.png" )
+    --combo:AddChoice( "sent_suspension_mstrut", nil, nil, "icon16/bullet_blue.png" )
 
     combo.OnSelect = function( _, id, val, func )
         RunConsoleCommand( "tanktracktool_spawn_entity", tostring( val ) )
@@ -1071,7 +1121,72 @@ local function BuildPanel_EntitySettings( self )
     return pnl
 end
 
+--[[
+local function BuildPanel_ToolSettings( self )
+    local pnl = vgui.Create( "DForm" )
+    pnl:SetName( "Tool Settings" )
+
+    local txt = header( pnl, "Overlay Colors" )
+
+    local combo = vgui.Create( "DComboBox", pnl )
+    pnl:AddItem( combo )
+
+    combo:AddChoice( "text_class", "tttm_tc" )
+    combo:AddChoice( "text_keyword", "tttm_tw" )
+    combo:AddChoice( "text_input", "tttm_ti" )
+    combo:AddChoice( "text_plain", "tttm_tp" )
+
+    local col = vgui.Create( "DColorMixer", pnl )
+    pnl:AddItem( col )
+
+    col:SetAlphaBar( true )
+    col:SetPalette( false )
+    col:SetWangs( true )
+
+    local btn = pnl:Button( "Reset" )
+    btn.DoClick = function( self )
+        local key, data = combo:GetSelected()
+        col:SetColor( default_colors[key] )
+    end
+
+    local btn = pnl:Button( "Reset ALL" )
+    btn.DoClick = function( self )
+        for i = 1, 4 do
+            local key = combo:GetOptionText( i )
+            local data = combo:GetOptionData( i )
+
+            local color = default_colors[key]
+            cookie.Set( data .. "_r", color.r )
+            cookie.Set( data .. "_g", color.g )
+            cookie.Set( data .. "_b", color.b )
+            cookie.Set( data .. "_a", color.a )
+        end
+
+        combo:ChooseOption( "text_class", 1 )
+    end
+
+    combo.OnSelect = function( self, i, val, data )
+        col:SetColor( rgbCookieGet( data, default_colors[val] ) )
+    end
+
+    combo:ChooseOption( "text_class", 1 )
+
+    col.ValueChanged = function( self, color )
+        local key, data = combo:GetSelected()
+
+        cookie.Set( data .. "_r", color.r )
+        cookie.Set( data .. "_g", color.g )
+        cookie.Set( data .. "_b", color.b )
+        cookie.Set( data .. "_a", color.a )
+
+        reskin()
+    end
+
+    return pnl
+end
+]]
 function TOOL.BuildCPanel( self )
     self:AddPanel( BuildPanel_AddonSettings( self ) )
     self:AddPanel( BuildPanel_EntitySettings( self ) )
+    --self:AddPanel( BuildPanel_ToolSettings( self ) )
 end

@@ -187,7 +187,7 @@ end
 function PANEL:RebuildSettings()
     local cat = self:AddNode( "TOOL SETTINGS" )
 
-    local node = cat:AddNode( "Enable Overlay" )
+    local node = cat:AddNode( "Enable Overlays" )
     node:Setup( { type = "checkbox" } )
 
     node.DataUpdate = function( _ )
@@ -240,7 +240,6 @@ function PANEL:Think()
     while SysTime() - t < 0.01 do
         local a, b = coroutine.resume( self.coroutine )
         if not a or b then
-            if b then print( b ) end
             self.coroutine = nil
             self.mywindow.btnClose:SetImage( "gui/cross.png" )
             break

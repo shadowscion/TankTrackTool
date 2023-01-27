@@ -65,7 +65,7 @@ local validClasses = {
     sent_point_beam = true,
     sent_suspension_shock = true,
     sent_suspension_spring = true,
-    sent_suspension_mstrut = true,
+    --sent_suspension_mstrut = true,
 }
 
 local isOwner = E2Lib.isOwner
@@ -222,6 +222,7 @@ quicklink.sent_suspension_spring = {
     end
 }
 
+--[[
 quicklink.sent_suspension_mstrut = {
     get = function()
         return { "Chassis (entity)", "LeftWheel (entity)", "RightWheel (entity)" }
@@ -242,6 +243,7 @@ quicklink.sent_suspension_mstrut = {
         return this:netvar_setLinks( { Chassis = E2Table.s.Chassis, LeftWheel = E2Table.s.LeftWheel, RightWheel = E2Table.s.RightWheel }, self.player )
     end
 }
+]]
 
 __e2setcost( 100 )
 e2function void entity:tanktracktoolSetLinks( table links )
