@@ -136,9 +136,9 @@ netvar:var( "pointColor2", "Color", { def = "", title = "outer color" } )
 
 netvar:category( "Beam" )
 netvar:var( "beamEnable", "Bool", { def = 1, title = "enabled" } )
-netvar:var( "beamSize1", "Float", { min = 1, max = 64, def = 12, title = "inner size" } )
+netvar:var( "beamSize1", "Float", { min = 0, max = 64, def = 12, title = "inner size" } )
 netvar:var( "beamColor1", "Color", { def = "", title = "inner color" } )
-netvar:var( "beamSize2", "Float", { min = 1, max = 64, def = 12, title = "outer size" } )
+netvar:var( "beamSize2", "Float", { min = 0, max = 64, def = 12, title = "outer size" } )
 netvar:var( "beamColor2", "Color", { def = "", title = "outer color" } )
 netvar:var( "beamMaterial", "Combo", { def = "tripmine_laser", title = "material" } )
 
@@ -149,6 +149,8 @@ edit.values = {
     ["trails/physbeam"] = 3,
     ["trails/plasma"] = 4,
     ["cable/cable2"] = 5,
+    ["tanktracktool/cable_white"] = 6,
+    ["tanktracktool/cable_chain"] = 7,
 }
 if CLIENT then
     edit.images = {
@@ -157,6 +159,8 @@ if CLIENT then
         ["trails/physbeam"] = "trails/physbeam",
         ["trails/plasma"] = "trails/plasma",
         ["cable/cable2"] = "cable/cable2",
+        ["tanktracktool/cable_white"] = "tanktracktool/cable_white",
+        ["tanktracktool/cable_chain"] = "tanktracktool/cable_chain",
     }
 end
 
@@ -418,7 +422,7 @@ end
 function mode:onThink( controller )
     local data = self:getData( controller )
 
-    if data.randomDisable and math.random( 0, 100 ) > data.randomDisable then
+    if data.randomDisable and math.random( 0, 100 ) > data.randomDisable or controller:GetNW2Bool( "netwire_Disable" ) then
         data.beams = {}
         return
     end
@@ -431,14 +435,6 @@ function mode:onThink( controller )
         controller.netvar.entities = t
     end
 
-    local ent1 = GetEntity( controller, "netwire_Entity1", controller.netvar.entities.Entity1 )
-    local ent2 = GetEntity( controller, "netwire_Entity2", controller.netvar.entities.Entity2 )
-    local pos1 = ent1:LocalToWorld( controller:GetNW2Vector( "netwire_Offset1" ), Vector() )
-    local pos2 = ent2:LocalToWorld( controller:GetNW2Vector( "netwire_Offset2" ), Vector() )
-
-    -- local dir = pos2 - pos1
-    -- local len = dir:Length()
-
     -- local plus = controller:GetNW2Bool( "netwire_Disable" ) and 1 or -1
     -- data.frac = math.Clamp( ( data.frac or 0 ) + FrameTime() * plus, 0, 1 )
 
@@ -447,7 +443,15 @@ function mode:onThink( controller )
     --     return
     -- end
 
-    -- pos2 = pos1 + dir:GetNormalized() * len * data.frac
+    local ent1 = GetEntity( controller, "netwire_Entity1", controller.netvar.entities.Entity1 )
+    local ent2 = GetEntity( controller, "netwire_Entity2", controller.netvar.entities.Entity2 )
+    local pos1 = ent1:LocalToWorld( controller:GetNW2Vector( "netwire_Offset1" ), Vector() )
+    local pos2 = ent2:LocalToWorld( controller:GetNW2Vector( "netwire_Offset2" ), Vector() )
+
+    --local dir = pos2 - pos1
+    --local len = dir:Length()
+
+    --pos2 = pos1 + dir:GetNormalized() * len * data.frac
 
     if data.pointDelay then
         data.velocity = LerpVector( data.pointDelay, data.velocity or Vector(), ( ent1:GetVelocity() + ent2:GetVelocity() ) * -0.01 )
@@ -533,9 +537,12 @@ function mode:onDraw( controller, eyepos, eyedir, empty )
             local v1 = beamPoints[1]
             local v2 = beamPoints[2]
 
+            local s1 = beamData.beamSize1 > 0 and beamData.beamSize1
+            local s2 = beamData.beamSize2 > 0 and beamData.beamSize2
+
             for j = 1, beamPointsCount - 1 do
-                render.DrawBeam( v1, v2, beamData.beamSize1, 0, 1, beamData.beamColor1 )
-                render.DrawBeam( v1, v2, beamData.beamSize2, 0, 1, beamData.beamColor2 )
+                if s1 then render.DrawBeam( v1, v2, s1, 0, 1, beamData.beamColor1 ) end
+                if s2 then render.DrawBeam( v1, v2, s2, 0, 1, beamData.beamColor2 ) end
 
                 v1 = beamPoints[j + 1]
                 v2 = beamPoints[j + 2]

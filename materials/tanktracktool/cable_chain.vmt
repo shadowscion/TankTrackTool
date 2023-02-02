@@ -1,0 +1,8 @@
+"UnlitGeneric"
+{
+	"$basetexture"		"tanktracktool\cable_chain"
+	"$bumpmap"              "cable\cablenormalmap"
+	"$alphatest"            1
+	"$vertexcolor"		1
+	"$nocull"               1
+}
