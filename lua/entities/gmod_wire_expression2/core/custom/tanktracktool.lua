@@ -73,6 +73,34 @@ local canEdit = tanktracktool.netvar.canEdit
 local canLink = tanktracktool.netvar.canLink
 local setVar = tanktracktool.netvar.setVar
 
+-- cooldown
+local function canRunFunction( e2 )
+    local ply = e2.player
+
+    if not ply.tanktracktool_e2_cooldown then
+        ply.tanktracktool_e2_cooldown = CurTime() + 1
+        ply.tanktracktool_e2_cooldown_count = 0
+        return true
+    end
+
+    ply.tanktracktool_e2_cooldown_count = ply.tanktracktool_e2_cooldown_count + 1
+
+    if ply.tanktracktool_e2_cooldown_count > 5 then
+        if ply.tanktracktool_e2_cooldown > CurTime() then
+            return false
+        end
+
+        ply.tanktracktool_e2_cooldown = CurTime() + 1
+        ply.tanktracktool_e2_cooldown_count = 0
+    end
+
+    return true
+end
+
+e2function number tanktracktoolCanUseValue()
+    return canRunFunction( self ) and 1 or 0
+end
+
 e2function entity tanktracktoolCreate( number keep, string class, string model, vector pos, angle ang )
     local class = string.lower( class )
     local model = string.lower( model )
@@ -82,6 +110,7 @@ end
 
 __e2setcost( 50 )
 e2function void entity:tanktracktoolResetValues()
+    if not canRunFunction( self ) then return end
     if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
     if not canEdit( this, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
 
@@ -95,6 +124,7 @@ e2function void entity:tanktracktoolResetValues()
 end
 
 e2function void entity:tanktracktoolCopyValues( entity other )
+    if not canRunFunction( self ) then return end
     if not isOwner( self, this ) or not isOwner( self, other ) then self:throw( "You do not own this entity!", nil ) end
     if not canEdit( this, self.player ) or not canEdit( other, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
     if this:GetClass() ~= other:GetClass() then self:throw( "Entities must be the same class!", nil ) end
@@ -103,6 +133,7 @@ end
 
 __e2setcost( 10 )
 e2function void entity:tanktracktoolSetValue( string key, ... )
+    if not canRunFunction( self ) then return end
     if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
     if not canEdit( this, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
     if not this.netvar.variables:get( key ) then self:throw( string.format( "Variable '%s' doesn't exist on entity!", key ), nil ) end
@@ -247,6 +278,7 @@ quicklink.sent_suspension_mstrut = {
 
 __e2setcost( 100 )
 e2function void entity:tanktracktoolSetLinks( table links )
+    if not canRunFunction( self ) then return end
     if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
     if not canEdit( this, self.player ) or not this.netvar_setLinks then self:throw( "You cannot link this entity!", nil ) end
     local class = this:GetClass()
@@ -256,6 +288,7 @@ end
 
 __e2setcost( 10 )
 e2function array entity:tanktracktoolGetLinkNames()
+    if not canRunFunction( self ) then return end
     if not this.netvar_setLinks then self:throw( "You cannot link this entity!", nil ) end
     local class = this:GetClass()
     if not quicklink[class] then self:throw( "You cannot link this entity!", nil ) end
