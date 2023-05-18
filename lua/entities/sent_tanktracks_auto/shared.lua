@@ -89,7 +89,7 @@ netvar:var( "wheelWidth", "Float", { min = 0, max = 250, def = 10, title = "widt
 netvar:var( "wheelCount", "Instance", { min = 2, max = 18, def = 7, title = "count", label = function( i ) return string.format( "wheel [%s]", i == 1 and "first" or i == 2 and "last" or i ) end } )
 
 netvar:category( nil )
-netvar:subvar( "whnOffsetX", "wheelCount", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
+netvar:subvar( "whnOffsetX", "wheelCount", "Float", { min = -5, max = 5, def = 0, title = "x offset" } )
 netvar:subvar( "whnOffsetY", "wheelCount", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
 netvar:subvar( "whnOffsetZ", "wheelCount", "Float", { min = -2000, max = 2000, def = 0, title = "z offset" } )
 netvar:subvar( "whnSuspension", "wheelCount", "Bool", { def = 1, title = "suspension" } )
@@ -122,7 +122,7 @@ netvar:var( "rollerLocalZ", "Bool", { def = 0, title = "z local" } )
 netvar:var( "rollerCount", "Instance", { min = 0, max = 18, def = 2, title = "count", label = "roller" } )
 
 netvar:category( nil )
-netvar:subvar( "ronOffsetX", "rollerCount", "Float", { min = -1, max = 1, def = 0, title = "x offset" } )
+netvar:subvar( "ronOffsetX", "rollerCount", "Float", { min = -5, max = 5, def = 0, title = "x offset" } )
 netvar:subvar( "ronOffsetY", "rollerCount", "Float", { min = -1, max = 1, def = 0, title = "y offset" } )
 netvar:subvar( "ronOffsetZ", "rollerCount", "Float", { min = -2000, max = 2000, def = 0, title = "z offset" } )
 netvar:subvar( "ronOverride", "rollerCount", "Bool", { def = 0, title = "visual",
