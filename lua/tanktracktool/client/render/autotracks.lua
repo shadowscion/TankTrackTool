@@ -66,7 +66,7 @@ local function grouser( y, z, side, yedge )
     return dir
 end
 
-local trackverts_model = function( y, z, side, yguide, yedge )
+local trackverts_model = function( y, z, side, yguide, zguide, yedge )
     y = y * side
 
     local model = {
@@ -84,7 +84,7 @@ local trackverts_model = function( y, z, side, yguide, yedge )
 
         -- guide
         Vector( 0, y * yguide * 0.375, z * 0.5 ),
-        Vector( 0, y * yguide * 0.375, -z * 1.5 ),
+        Vector( 0, y * yguide * 0.375, -z * zguide ),
      }
 
     if yedge ~= 0 then
@@ -171,8 +171,8 @@ function tanktracktool.autotracks.setup( self )
         if values.trackFlip ~= 0 then side = -1 else side = 1 end
     end
 
-    self.autotracks_data_model_le = trackverts_model( values.trackWidth, values.trackHeight, side, values.trackGuideY, values.trackGrouser )
-    self.autotracks_data_model_ri = trackverts_model( values.trackWidth, values.trackHeight, -side, values.trackGuideY, values.trackGrouser )
+    self.autotracks_data_model_le = trackverts_model( values.trackWidth, values.trackHeight, side, values.trackGuideY, values.trackGuideZ, values.trackGrouser )
+    self.autotracks_data_model_ri = trackverts_model( values.trackWidth, values.trackHeight, -side, values.trackGuideY, values.trackGuideZ, values.trackGrouser )
 
     self.autotracks_data_modelcount_le = #self.autotracks_data_model_le
     self.autotracks_data_modelcount_ri = #self.autotracks_data_model_ri

@@ -77,6 +77,7 @@ netvar:var( "trackTension", "Float", { min = 0, max = 1, def = 0.5, title = "ten
 netvar:var( "trackWidth", "Float", { min = 0, max = 250, def = 24, title = "width" } )
 netvar:var( "trackHeight", "Float", { min = 0, max = 250, def = 3, title = "height" } )
 netvar:var( "trackGuideY", "Float", { min = -1, max = 1, def = 0, title = "guide offset" } )
+netvar:var( "trackGuideZ", "Float", { min = 0, max = 5, def = 1.5, title = "guide height" } )
 netvar:var( "trackGrouser", "Float", { min = 0, max = 1, def = 0, title = "grouser length" } )
 
 netvar:category( "Wheels" )

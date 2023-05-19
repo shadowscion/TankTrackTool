@@ -489,7 +489,9 @@ function netvar.install( ent, install, default, restore )
             if not restore and ( default and default[var.name] ~= nil ) then
                 val = default[var.name]
             end
-            if restore then val = restore[var.name] end
+            if restore and restore[var.name] ~= nil then
+                val = restore[var.name]
+            end
             ent.netvar.values[var.name] = netvar.sanitizer[var.type]( val, var.data )
         else
             ent.netvar.values[var.name] = {}

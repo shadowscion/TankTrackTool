@@ -162,6 +162,7 @@ function ENT:Think()
                     trackWidth = values.trackWidth,
                     trackHeight = values.trackHeight,
                     trackGuideY = values.trackGuideY,
+                    trackGuideZ = values.trackGuideZ,
                     trackGrouser = values.trackGrouser,
                     trackTension = values.trackTension,
                     trackRes = values.trackRes,

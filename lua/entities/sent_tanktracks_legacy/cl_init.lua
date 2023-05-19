@@ -165,6 +165,7 @@ function mode:onInit( controller )
         trackWidth = values.trackWidth,
         trackHeight = values.trackHeight,
         trackGuideY = values.trackGuideY,
+        trackGuideZ = values.trackGuideZ,
         trackGrouser = values.trackGrouser,
         trackTension = values.trackTension,
         trackRes = values.trackRes,
@@ -174,6 +175,7 @@ function mode:onInit( controller )
     controller.autotracks_rollercount = rollercount
     controller.autotracks_trackoffset = parts[1][1][1].y + ( controller.autotracks_trackvalues.trackFlip ~= 0 and -1 or 1 ) * values.trackOffsetY
     controller.autotracks_sprocket = math.Clamp( values.wheelSprocket, 1, #parts )
+    controller.autotracks_scrollRateMod = math.Clamp( values.scrollMod, 0.01, 2 )
     controller.autotracks_le_lastpos = controller.autotracks_le_lastpos or Vector()
     controller.autotracks_le_lastvel = controller.autotracks_le_lastvel or 1
     controller.autotracks_le_lastrot = controller.autotracks_le_lastrot or 1
@@ -217,6 +219,7 @@ function mode:onThink( controller, eyepos, eyedir )
     if dir:Dot( eyedir ) / dir:Length() < -0.75 then return end
 
     local sprocket = controller.autotracks_sprocket
+    local scrollMod = controller.autotracks_scrollRateMod
 
     for i = 1, #parts do
         local wheel = parts[i][1]
@@ -227,7 +230,7 @@ function mode:onThink( controller, eyepos, eyedir )
 
         if i == sprocket then
             local rot_le = GetAngularVelocity( ent, pos, ang )
-            controller.autotracks_le_lastvel = rot_le / ( math.pi * 1.5 ) -- no idea if this is correct nor why it works
+            controller.autotracks_le_lastvel = rot_le / ( math.pi * ( 1.5 * scrollMod ) ) -- no idea if this is correct nor why it works
         end
     end
 

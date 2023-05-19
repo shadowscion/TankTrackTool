@@ -33,10 +33,12 @@ netvar:var( "trackTension", "Float", { min = 0, max = 1, def = 0.5, title = "ten
 netvar:var( "trackWidth", "Float", { min = 0, max = 250, def = 24, title = "width" } )
 netvar:var( "trackHeight", "Float", { min = 0, max = 250, def = 3, title = "height" } )
 netvar:var( "trackGuideY", "Float", { min = -1, max = 1, def = 0, title = "guide offset" } )
+netvar:var( "trackGuideZ", "Float", { min = 0, max = 5, def = 1.5, title = "guide height" } )
 netvar:var( "trackGrouser", "Float", { min = 0, max = 1, def = 0, title = "grouser length" } )
 
 netvar:category( "Wheels" )
 netvar:var( "wheelSprocket", "Int", { min = 1, max = 250, def = 1,  title = "sprocket id", help = "controls which wheel scrolls the tracks" } )
+netvar:var( "scrollMod", "Float", { min = 0, max = 2, def = 1, title = "scroll speed", help = "multiplier for track scroll speed" } )
 netvar:var( "wheelRadius", "Float", { min = -250, max = 250, def = 0, title = "offset wheel radius" } )
 netvar:var( "rollerRadius", "Float", { min = -250, max = 250, def = 0, title = "offset roller radius" } )
 
