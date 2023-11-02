@@ -132,7 +132,7 @@ local function setcolor( self, color )
     self.color = Color( color.r / 255, color.g / 255, color.b / 255, color.a / 255 )
 end
 
-local function setbodygroup( self, str ) self.bodygroup = isstring( str ) and str or nil end
+local function setbodygroup( self, str ) self.bodygroup = isstring( str ) and str or "" end
 
 local function setmodel( self, model ) self.model = tanktracktool.util.getModel( model ) end
 
@@ -169,7 +169,7 @@ local function renderme( self, empty )
         if self.bodygroup then
             csent:SetBodyGroups( self.bodygroup )
         else
-            csent:SetBodyGroups( nil )
+            csent:SetBodyGroups( "" )
         end
 
         local color = self.color
