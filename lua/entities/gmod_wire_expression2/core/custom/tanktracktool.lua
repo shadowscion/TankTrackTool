@@ -132,24 +132,24 @@ e2function void entity:tanktracktoolCopyValues( entity other )
 end
 
 __e2setcost( 10 )
-e2function void entity:tanktracktoolSetValue( string key, ... )
+e2function void entity:tanktracktoolSetValue( string key, ...args )
     if not canRunFunction( self ) then return end
     if not isOwner( self, this ) then self:throw( "You do not own this entity!", nil ) end
     if not canEdit( this, self.player ) then self:throw( "You cannot edit this entity!", nil ) end
     if not this.netvar.variables:get( key ) then self:throw( string.format( "Variable '%s' doesn't exist on entity!", key ), nil ) end
 
-    local count = select( "#", ... )
+    local count = #args
 
     if count == 0 then self:throw( "You must provide a value!", nil ) end
 
     if count == 1 then
-        local value = unpack( { ... } )
+        local value = unpack( args )
         setVar( this, key, nil, value, true )
         return
     end
 
     if count == 2 then
-        local index, value = unpack( { ... } )
+        local index, value = unpack( args )
         if not isnumber( index ) then self:throw( "You must provide an index!", nil ) end
         setVar( this, key, index, value, true )
         return

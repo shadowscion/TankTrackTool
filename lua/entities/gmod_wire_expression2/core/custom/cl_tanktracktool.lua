@@ -1,0 +1,7 @@
+E2Helper.Descriptions["tanktracktoolCanUseValue()"] = ""
+E2Helper.Descriptions["tanktracktoolCopyValues(e:e)"] = ""
+E2Helper.Descriptions["tanktracktoolResetValues(e:)"] = ""
+E2Helper.Descriptions["tanktracktoolSetLinks(e:t)"] = ""
+E2Helper.Descriptions["tanktracktoolCreate(nssva)"] = ""
+E2Helper.Descriptions["tanktracktoolGetLinkNames(e:)"] = ""
+E2Helper.Descriptions["tanktracktoolSetValue(s...)"] = ""
