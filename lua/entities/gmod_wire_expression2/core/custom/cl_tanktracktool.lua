@@ -4,4 +4,4 @@ E2Helper.Descriptions["tanktracktoolResetValues(e:)"] = "Resets the entity inter
 E2Helper.Descriptions["tanktracktoolSetLinks(e:t)"] = "Updates the entity links from the table passed"
 E2Helper.Descriptions["tanktracktoolCreate(nssva)"] = "Create an entity with given class by request"
 E2Helper.Descriptions["tanktracktoolGetLinkNames(e:)"] = "Returns an array containing the link names"
-E2Helper.Descriptions["tanktracktoolSetValue(s...)"] = "Updates the values under the specified index"
+E2Helper.Descriptions["tanktracktoolSetValue(e:s...)"] = "Updates the values under the specified index"
