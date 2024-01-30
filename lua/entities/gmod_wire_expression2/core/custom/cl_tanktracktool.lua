@@ -1,4 +1,4 @@
-E2Helper.Descriptions["tanktracktoolCanUseValue()"] = "Checks the calm down whenever a value can be used"
+E2Helper.Descriptions["tanktracktoolCanUseValue()"] = "Checks the cooldown whenever a value can be used"
 E2Helper.Descriptions["tanktracktoolCopyValues(e:e)"] = "Copies the track values from one entity to another"
 E2Helper.Descriptions["tanktracktoolResetValues(e:)"] = "Resets the entity internal track values"
 E2Helper.Descriptions["tanktracktoolSetLinks(e:t)"] = "Updates the entity links from the table passed"
