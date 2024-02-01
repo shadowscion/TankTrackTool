@@ -23,7 +23,7 @@ that issue. Please post pictures so I can add them to the images!
  * Waxx; server testing
  * Thebutheads; ideas
  * Karbine; ideas
- * dvd_video; wiremod api update and readme
+ * dvd_video; wiremod api, readme
  
 # Use the [workshop version][ref-ws]!
 
@@ -42,6 +42,7 @@ that issue. Please post pictures so I can add them to the images!
 |`tanktracktoolCanUseValue`(![image][ref-xxx])|![image][ref-n]|Checks the calm down whenever a value can be used|
 |`tanktracktoolCreate`(![image][ref-n],![image][ref-s],![image][ref-s],![image][ref-v],![image][ref-a])|![image][ref-e]|Create an entity with given class by request|
 
+[ref-ws]: http://steamcommunity.com/sharedfiles/filedetails/?id=737640184
 [ref-a]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-a.png
 [ref-b]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-b.png
 [ref-c]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-c.png
