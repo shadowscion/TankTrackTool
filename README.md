@@ -13,7 +13,8 @@ that issue. Please post pictures so I can add them to the images!
 # Features:
  * Easy to use; spawn, select wheels, edit with context menu, and go!
  * A lot of options so far, and probably more in the future.
- * 100% Clientside (apart from the networked editable options); no more laggy e2 tracks, or, god forbid, physical ones!
+ * 100% Clientside (apart from the networked editable options)
+ * No more laggy `E2` tracks, or, god forbid, physical ones!
 
 # Credits:
  * MrWhite; textures
@@ -29,7 +30,7 @@ that issue. Please post pictures so I can add them to the images!
 # Wiremod API
 
 |              Entity extensions               | Out | Description |
-|:--------------------------------------------:|:---:|:-----------:|
+|:---------------------------------------------|:---:|:------------|
 |![image][ref-e]:`tanktracktoolCopyValues`(![image][ref-e])|![image][ref-xxx]|Copies the track values from one entity to another|
 |![image][ref-e]:`tanktracktoolGetLinkNames`(![image][ref-xxx])|![image][ref-r]|Returns an array containing the link names|
 |![image][ref-e]:`tanktracktoolResetValues`(![image][ref-xxx])|![image][ref-xxx]|Resets the entity internal track values|
@@ -37,7 +38,7 @@ that issue. Please post pictures so I can add them to the images!
 |![image][ref-e]:`tanktracktoolSetValue`(![image][ref-s],![image][ref-...])|![image][ref-xxx]|Updates the values under the specified index|
 
 |        General functions         | Out | Description |
-|:--------------------------------:|:---:|:-----------:|
+|:---------------------------------|:---:|:------------|
 |`tanktracktoolCanUseValue`(![image][ref-xxx])|![image][ref-n]|Checks the calm down whenever a value can be used|
 |`tanktracktoolCreate`(![image][ref-n],![image][ref-s],![image][ref-s],![image][ref-v],![image][ref-a])|![image][ref-e]|Create an entity with given class by request|
 
