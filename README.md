@@ -13,7 +13,8 @@ that issue. Please post pictures so I can add them to the images!
 # Features:
  * Easy to use; spawn, select wheels, edit with context menu, and go!
  * A lot of options so far, and probably more in the future.
- * 100% Clientside (apart from the networked editable options); no more laggy e2 tracks, or, god forbid, physical ones!
+ * 100% Clientside (apart from the networked editable options)
+ * No more laggy `E2` tracks, or, god forbid, physical ones!
 
 # Credits:
  * MrWhite; textures
@@ -22,13 +23,13 @@ that issue. Please post pictures so I can add them to the images!
  * Waxx; server testing
  * Thebutheads; ideas
  * Karbine; ideas
- * dvd_video; wiremod api update and readme
+ * dvd_video; wiremod api, readme
  
 # Use the [workshop version][ref-ws]!
 
 # Wiremod API
 
-|                   Extensions                 | Out | Description |
+|              Entity extensions               | Out | Description |
 |:---------------------------------------------|:---:|:------------|
 |![image][ref-e]:`tanktracktoolCopyValues`(![image][ref-e])|![image][ref-xxx]|Copies the track values from one entity to another|
 |![image][ref-e]:`tanktracktoolGetLinkNames`(![image][ref-xxx])|![image][ref-r]|Returns an array containing the link names|
@@ -42,24 +43,24 @@ that issue. Please post pictures so I can add them to the images!
 |`tanktracktoolCreate`(![image][ref-n],![image][ref-s],![image][ref-s],![image][ref-v],![image][ref-a])|![image][ref-e]|Create an entity with given class by request|
 
 [ref-ws]: http://steamcommunity.com/sharedfiles/filedetails/?id=737640184
-[ref-a]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-a.png
-[ref-b]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-b.png
-[ref-c]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-c.png
-[ref-e]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-e.png
-[ref-xm2]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xm2.png
-[ref-m]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-m.png
-[ref-xm4]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xm4.png
-[ref-n]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-n.png
-[ref-q]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-q.png
-[ref-r]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-r.png
-[ref-s]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-s.png
-[ref-t]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-t.png
-[ref-xv2]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xv2.png
-[ref-v]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-v.png
-[ref-xv4]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xv4.png
-[ref-xrd]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xrd.png
-[ref-xwl]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xwl.png
-[ref-xft]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xft.png
-[ref-xsc]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xsc.png
-[ref-xxx]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-xxx.png
-[ref-...]: https://raw.githubusercontent.com/shadowscion/shadowscion/main/wirewiki/types/type-....png
+[ref-a]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-a.png
+[ref-b]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-b.png
+[ref-c]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-c.png
+[ref-e]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-e.png
+[ref-xm2]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xm2.png
+[ref-m]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-m.png
+[ref-xm4]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xm4.png
+[ref-n]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-n.png
+[ref-q]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-q.png
+[ref-r]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-r.png
+[ref-s]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-s.png
+[ref-t]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-t.png
+[ref-xv2]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xv2.png
+[ref-v]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-v.png
+[ref-xv4]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xv4.png
+[ref-xrd]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xrd.png
+[ref-xwl]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xwl.png
+[ref-xft]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xft.png
+[ref-xsc]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xsc.png
+[ref-xxx]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-xxx.png
+[ref-...]: https://raw.githubusercontent.com/dvdvideo1234/ZeroBraineProjects/master/ExtractWireWiki/types/type-....png
