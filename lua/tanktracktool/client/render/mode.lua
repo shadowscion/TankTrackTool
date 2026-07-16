@@ -24,20 +24,28 @@ local draws, emptyCSENT = tanktracktool.render.draws, tanktracktool.render.empty
 local eyepos, eyedir = Vector(), Vector()
 local flashlightMODE
 
-hook.Add( "PostDrawOpaqueRenderables", "tanktracktoolRenderDraw", function(bDrawingDepth, isDrawSkybox, isDraw3DSkybox)
+hook.Add( "PostDrawOpaqueRenderables", "tanktracktoolRenderDraw", function( bDrawingDepth, isDrawSkybox, isDraw3DSkybox )
     if bDrawingDepth or isDrawSkybox then return end
+
     flashlightMODE = LocalPlayer():FlashlightIsOn() --or #ents.FindByClass "*projectedtexture*" ~= 0
     eyepos = EyePos()
     eyedir = EyeVector()
-    if FrameTime() == 0 or not next( draws ) then return end
+
+    if not next( draws ) then
+        return
+    end
+
     if not IsValid( emptyCSENT ) then
         tanktracktool.render.empty = ClientsideModel( "models/props_c17/oildrum001_explosive.mdl" )
         tanktracktool.render.empty:SetNoDraw( true )
         emptyCSENT = tanktracktool.render.empty
         return
     end
+
     for controller, mode in pairs( draws ) do
-        if IsValid( controller ) then mode:draw( controller ) end
+        if IsValid( controller ) and not controller:IsDormant() then
+            mode:draw( controller )
+        end
     end
 end )
 
