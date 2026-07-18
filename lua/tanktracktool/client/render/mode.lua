@@ -43,7 +43,7 @@ hook.Add( "PostDrawOpaqueRenderables", "tanktracktoolRenderDraw", function( bDra
     end
 
     for controller, mode in pairs( draws ) do
-        if IsValid( controller ) and not controller:IsDormant() then
+        if IsValid( controller ) then
             mode:draw( controller )
         end
     end
