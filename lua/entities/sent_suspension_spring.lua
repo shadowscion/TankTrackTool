@@ -96,19 +96,29 @@ end
 
 
 local function GetEntities( self )
-    if not self.netvar.entities and ( self.netvar.entindex.Entity1 and self.netvar.entindex.Entity2 ) then
-        local e1 = Entity( self.netvar.entindex.Entity1 )
-        local e2 = Entity( self.netvar.entindex.Entity2 )
+    local netvar = self.netvar
+    local entities = netvar.entities
 
-        if IsValid( e1 ) and IsValid( e2 ) then
-            self.netvar.entities = { Entity1 = e1, Entity2 = e2 }
+    if not entities then
+        local entindex = netvar.entindex
+
+        if entindex.Entity1 and entindex.Entity2 then
+            local e1 = Entity( entindex.Entity1 )
+            local e2 = Entity( entindex.Entity2 )
+
+            if IsValid( e1 ) and IsValid( e2 ) then
+                entities = { Entity1 = e1, Entity2 = e2 }
+                netvar.entities = entities
+            end
+        else
+            return
         end
     end
 
-    local e1 = self.netvar.entities and IsValid( self.netvar.entities.Entity1 ) and self.netvar.entities.Entity1 or nil
-    local e2 = self.netvar.entities and IsValid( self.netvar.entities.Entity2 ) and self.netvar.entities.Entity2 or nil
+    local e1 = entities.Entity1
+    local e2 = entities.Entity2
 
-    return e1, e2
+    return IsValid( e1 ) and e1, e2:IsValid( e2 ) and e2
 end
 
 
