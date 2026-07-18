@@ -563,7 +563,7 @@ function ENT:Think()
         return
     end
 
-    self.BaseClass.Think( self )
+    BaseClass.Think( self )
 
     if self.tanktracktool_reset then
         self.tanktracktool_reset = nil
@@ -572,8 +572,4 @@ function ENT:Think()
     end
 
     mode:think( self )
-end
-
-function ENT:Draw()
-    self:DrawModel()
 end

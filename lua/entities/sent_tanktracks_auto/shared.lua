@@ -1,7 +1,6 @@
 
-DEFINE_BASECLASS( "base_tanktracktool" )
-
 ENT.Type      = "anim"
+ENT.Base      = "base_tanktracktool"
 ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.Category  = "Tank Track Tool"

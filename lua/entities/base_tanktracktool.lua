@@ -4,8 +4,6 @@
 ]]
 AddCSLuaFile()
 
-DEFINE_BASECLASS( "base_anim" )
-
 ENT.Type      = "anim"
 ENT.Spawnable = false
 ENT.AdminOnly = true
@@ -136,13 +134,6 @@ if SERVER then
 
         self.DuplicationInProgress = nil
     end
-
-else
-
-    function ENT:Draw()
-        self:DrawModel()
-    end
-
 end
 
 

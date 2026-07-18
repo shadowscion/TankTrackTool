@@ -155,19 +155,28 @@ end
 
 
 local function GetEntities( self )
-    if not self.netvar.entities and ( self.netvar.entindex.Entity1 and self.netvar.entindex.Entity2 ) then
-        local e1 = Entity( self.netvar.entindex.Entity1 )
-        local e2 = Entity( self.netvar.entindex.Entity2 )
+    local netvar = self.netvar
+    local entities = netvar.entities
 
-        if IsValid( e1 ) and IsValid( e2 ) then
-            self.netvar.entities = { Entity1 = e1, Entity2 = e2 }
+    if not entities then
+        local entindex = netvar.entindex
+
+        if entindex.Entity1 and entindex.Entity2 then
+            local e1, e2 = Entity( entindex.Entity1 ), Entity( entindex.Entity2 )
+
+            if IsValid( e1 ) and IsValid( e2 ) then
+                entities = { Entity1 = e1, Entity2 = e2 }
+                netvar.entities = entities
+            end
+        else
+            return
         end
     end
 
-    local e1 = self.netvar.entities and IsValid( self.netvar.entities.Entity1 ) and self.netvar.entities.Entity1 or nil
-    local e2 = self.netvar.entities and IsValid( self.netvar.entities.Entity2 ) and self.netvar.entities.Entity2 or nil
-
-    return e1, e2
+    if entities then
+        local e1, e2 = entities.Entity1, entities.Entity2
+        return IsValid( e1 ) and e1, IsValid( e2 ) and e2
+    end
 end
 
 
@@ -237,7 +246,7 @@ function mode:onDraw( controller, eyepos, eyedir, empty, flashlight )
 end
 
 function ENT:Think()
-    self.BaseClass.Think( self )
+    BaseClass.Think( self )
 
     if self.tanktracktool_reset then
         self.tanktracktool_reset = nil
@@ -246,8 +255,4 @@ function ENT:Think()
     end
 
     mode:think( self )
-end
-
-function ENT:Draw()
-    self:DrawModel()
 end

@@ -1,6 +1,8 @@
 
 include( "shared.lua" )
 
+DEFINE_BASECLASS( "base_tanktracktool" )
+
 local tanktracktool = tanktracktool
 
 local math, util, string, table, render =
@@ -133,7 +135,7 @@ function ENT:Think()
         return
     end
 
-    self.BaseClass.Think( self )
+    BaseClass.Think( self )
 
     if self:IsDormant() then
         return
@@ -191,8 +193,8 @@ function ENT:Think()
     end
 end
 
-function ENT:Draw()
-    self:DrawModel()
+function ENT:Draw( flags )
+    self:DrawModel( flags )
 
     if tanktracktool.disable_autotracks then return end
 
