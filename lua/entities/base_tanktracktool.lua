@@ -136,13 +136,6 @@ if SERVER then
 
         self.DuplicationInProgress = nil
     end
-
-else
-
-    function ENT:Draw()
-        self:DrawModel()
-    end
-
 end
 
 

@@ -247,7 +247,3 @@ function ENT:Think()
 
     mode:think( self )
 end
-
-function ENT:Draw()
-    self:DrawModel()
-end

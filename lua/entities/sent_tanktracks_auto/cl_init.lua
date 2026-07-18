@@ -191,8 +191,8 @@ function ENT:Think()
     end
 end
 
-function ENT:Draw()
-    self:DrawModel()
+function ENT:Draw( flags )
+    self:DrawModel( flags )
 
     if tanktracktool.disable_autotracks then return end
 
