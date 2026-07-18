@@ -103,8 +103,7 @@ local function GetEntities( self )
         local entindex = netvar.entindex
 
         if entindex.Entity1 and entindex.Entity2 then
-            local e1 = Entity( entindex.Entity1 )
-            local e2 = Entity( entindex.Entity2 )
+            local e1, e2 = Entity( entindex.Entity1 ), Entity( entindex.Entity2 )
 
             if IsValid( e1 ) and IsValid( e2 ) then
                 entities = { Entity1 = e1, Entity2 = e2 }
@@ -115,10 +114,10 @@ local function GetEntities( self )
         end
     end
 
-    local e1 = entities.Entity1
-    local e2 = entities.Entity2
-
-    return IsValid( e1 ) and e1, e2:IsValid( e2 ) and e2
+    if entities then
+        local e1, e2 = entities.Entity1, entities.Entity2
+        return IsValid( e1 ) and e1, e2:IsValid( e2 ) and e2
+    end
 end
 
 
