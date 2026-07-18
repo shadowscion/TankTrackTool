@@ -116,7 +116,7 @@ local function GetEntities( self )
 
     if entities then
         local e1, e2 = entities.Entity1, entities.Entity2
-        return IsValid( e1 ) and e1, e2:IsValid( e2 ) and e2
+        return IsValid( e1 ) and e1, IsValid( e2 ) and e2
     end
 end
 
