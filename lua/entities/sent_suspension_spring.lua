@@ -171,7 +171,7 @@ function mode:onDraw( controller, eyepos, eyedir, empty, flashlight )
 end
 
 function ENT:Think()
-    self.BaseClass.Think( self )
+    BaseClass.Think( self )
 
     if self.tanktracktool_reset then
         self.tanktracktool_reset = nil
