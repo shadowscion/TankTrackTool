@@ -27,6 +27,7 @@ if SERVER then
     include( "tanktracktool/netvar.lua" )
     include( "tanktracktool/property.lua" )
 
+    resource.AddWorkshop("737640184")
 end
 
 if CLIENT then
